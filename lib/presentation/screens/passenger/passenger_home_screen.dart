@@ -24,7 +24,10 @@ class _PassengerHomeScreenState extends ConsumerState<PassengerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTrips();
+    // Defer loading until after first frame to avoid modifying providers during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadTrips();
+    });
   }
 
   Future<void> _loadTrips() async {

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/core/di/injection.dart';
+import 'package:shuttlebee/domain/entities/trip_entity.dart';
 import 'package:shuttlebee/domain/repositories/trip_repository.dart';
 import 'package:shuttlebee/presentation/providers/manager/manager_analytics_state.dart';
 
@@ -10,6 +12,113 @@ class ManagerAnalyticsNotifier extends StateNotifier<ManagerAnalyticsState> {
   ) : super(const ManagerAnalyticsState());
 
   final TripRepository _tripRepository;
+
+  ManagerAnalyticsState _buildAnalyticsState(
+    List<TripEntity> trips, {
+    required DateTime referenceDate,
+  }) {
+    // Calculate statistics
+    final completed =
+        trips.where((t) => t.state == TripState.done).length;
+    final cancelled =
+        trips.where((t) => t.state == TripState.cancelled).length;
+    final completionRate = trips.isEmpty ? 0.0 : (completed / trips.length) * 100;
+    final cancellationRate =
+        trips.isEmpty ? 0.0 : (cancelled / trips.length) * 100;
+
+    // Calculate performance metrics
+    final tripsWithDelay = trips.where((t) {
+      if (t.actualStartTime != null && t.plannedStartTime != null) {
+        return t.actualStartTime!.isAfter(t.plannedStartTime!);
+      }
+      return false;
+    }).toList();
+
+    var totalDelay = 0.0;
+    for (final trip in tripsWithDelay) {
+      final delay = trip.actualStartTime!
+          .difference(trip.plannedStartTime!)
+          .inMinutes
+          .toDouble();
+      totalDelay += delay;
+    }
+
+    final averageDelay =
+        tripsWithDelay.isEmpty ? 0.0 : totalDelay / tripsWithDelay.length;
+
+    final onTimeTrips = trips.where((t) {
+      if (t.actualStartTime != null && t.plannedStartTime != null) {
+        final diff =
+            t.actualStartTime!.difference(t.plannedStartTime!).inMinutes.abs();
+        // Within 5 minutes is considered on-time
+        return diff <= 5;
+      }
+      return false;
+    }).length;
+
+    final onTimePercentage = trips.isEmpty ? 0.0 : (onTimeTrips / trips.length) * 100;
+
+    // Calculate passenger statistics
+    final totalPassengers = trips.fold<int>(0, (sum, trip) => sum + trip.boardedCount);
+
+    final totalCapacity =
+        trips.fold<int>(0, (sum, trip) => sum + trip.totalPassengers);
+
+    final occupancyRate =
+        totalCapacity == 0 ? 0.0 : (totalPassengers / totalCapacity) * 100;
+
+    // Calculate distance
+    // Distance is not available on TripEntity right now, so keep at zero
+    const totalDistance = 0.0;
+
+    final avgDistance = trips.isEmpty ? 0.0 : totalDistance / trips.length;
+
+    // Calculate daily stats for last 7 days using reference date
+    final last7Days = List.generate(
+      7,
+      (i) => DateTime(
+        referenceDate.year,
+        referenceDate.month,
+        referenceDate.day,
+      ).subtract(Duration(days: 6 - i)),
+    );
+
+    final dailyStats = last7Days.map((date) {
+      final dayStart = DateTime(date.year, date.month, date.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
+      final dayTrips = trips.where((trip) {
+        return trip.date.isAfter(dayStart) && trip.date.isBefore(dayEnd);
+      }).toList();
+
+      return DailyTripStat(
+        date: dayStart,
+        totalTrips: dayTrips.length,
+        completedTrips:
+            dayTrips.where((t) => t.state == TripState.done).length,
+        cancelledTrips:
+            dayTrips.where((t) => t.state == TripState.cancelled).length,
+      );
+    }).toList();
+
+    return ManagerAnalyticsState(
+      totalTripsThisMonth: trips.length,
+      completedTripsThisMonth: completed,
+      cancelledTripsThisMonth: cancelled,
+      completionRate: completionRate,
+      cancellationRate: cancellationRate,
+      averageDelayMinutes: averageDelay,
+      onTimePercentage: onTimePercentage,
+      totalPassengersTransported: totalPassengers,
+      averageOccupancyRate: occupancyRate,
+      totalDistanceKm: totalDistance,
+      averageDistancePerTrip: avgDistance,
+      estimatedFuelCost: totalDistance * 0.5, // Estimate: 0.5 SAR per km
+      dailyStats: dailyStats,
+      isLoading: false,
+      error: null,
+    );
+  }
 
   /// Load analytics data
   Future<void> loadAnalytics() async {
@@ -23,8 +132,8 @@ class ManagerAnalyticsNotifier extends StateNotifier<ManagerAnalyticsState> {
 
       // Load trips for this month
       final tripsResult = await _tripRepository.getTrips(
-        startDate: monthStart,
-        endDate: monthEnd,
+        dateFrom: monthStart,
+        dateTo: monthEnd,
       );
 
       tripsResult.fold(
@@ -32,105 +141,10 @@ class ManagerAnalyticsNotifier extends StateNotifier<ManagerAnalyticsState> {
           state = ManagerAnalyticsState.error(failure.message);
         },
         (trips) {
-          // Calculate statistics
-          final completed = trips.where((t) => t.isDone).length;
-          final cancelled = trips.where((t) => t.isCancelled).length;
-          final completionRate =
-              trips.isEmpty ? 0.0 : (completed / trips.length) * 100;
-          final cancellationRate =
-              trips.isEmpty ? 0.0 : (cancelled / trips.length) * 100;
-
-          // Calculate performance metrics
-          final tripsWithDelay = trips.where((t) {
-            if (t.actualStartTime != null && t.plannedStartTime != null) {
-              return t.actualStartTime!.isAfter(t.plannedStartTime!);
-            }
-            return false;
-          }).toList();
-
-          double totalDelay = 0;
-          for (final trip in tripsWithDelay) {
-            final delay = trip.actualStartTime!
-                .difference(trip.plannedStartTime!)
-                .inMinutes;
-            totalDelay += delay;
-          }
-
-          final averageDelay =
-              tripsWithDelay.isEmpty ? 0.0 : totalDelay / tripsWithDelay.length;
-
-          final onTimeTrips = trips.where((t) {
-            if (t.actualStartTime != null && t.plannedStartTime != null) {
-              final diff = t.actualStartTime!
-                  .difference(t.plannedStartTime!)
-                  .inMinutes
-                  .abs();
-              return diff <= 5; // Within 5 minutes is considered on-time
-            }
-            return false;
-          }).length;
-
-          final onTimePercentage =
-              trips.isEmpty ? 0.0 : (onTimeTrips / trips.length) * 100;
-
-          // Calculate passenger statistics
-          final totalPassengers =
-              trips.fold<int>(0, (sum, trip) => sum + trip.boardedCount);
-
-          final totalCapacity =
-              trips.fold<int>(0, (sum, trip) => sum + trip.totalPassengers);
-
-          final occupancyRate =
-              totalCapacity == 0 ? 0.0 : (totalPassengers / totalCapacity) * 100;
-
-          // Calculate distance
-          final totalDistance = trips.fold<double>(
-              0.0, (sum, trip) => sum + (trip.actualDistance ?? 0.0));
-
-          final avgDistance =
-              trips.isEmpty ? 0.0 : totalDistance / trips.length;
-
-          // Calculate daily stats for last 7 days
-          final last7Days = List.generate(7, (i) {
-            return now.subtract(Duration(days: 6 - i));
-          });
-
-          final dailyStats = last7Days.map((date) {
-            final dayStart = DateTime(date.year, date.month, date.day);
-            final dayEnd = dayStart.add(const Duration(days: 1));
-
-            final dayTrips = trips.where((trip) {
-              return trip.date.isAfter(dayStart) && trip.date.isBefore(dayEnd);
-            }).toList();
-
-            return DailyTripStat(
-              date: dayStart,
-              totalTrips: dayTrips.length,
-              completedTrips: dayTrips.where((t) => t.isDone).length,
-              cancelledTrips: dayTrips.where((t) => t.isCancelled).length,
-            );
-          }).toList();
-
-          state = state.copyWith(
-            totalTripsThisMonth: trips.length,
-            completedTripsThisMonth: completed,
-            cancelledTripsThisMonth: cancelled,
-            completionRate: completionRate,
-            cancellationRate: cancellationRate,
-            averageDelayMinutes: averageDelay,
-            onTimePercentage: onTimePercentage,
-            totalPassengersTransported: totalPassengers,
-            averageOccupancyRate: occupancyRate,
-            totalDistanceKm: totalDistance,
-            averageDistancePerTrip: avgDistance,
-            estimatedFuelCost: totalDistance * 0.5, // Estimate: 0.5 SAR per km
-            dailyStats: dailyStats,
-            isLoading: false,
-            error: null,
+          state = _buildAnalyticsState(
+            trips,
+            referenceDate: now,
           );
-
-          // TODO: Load vehicle and driver statistics
-          // This requires Vehicle and Driver repositories
         },
       );
     } catch (e) {
@@ -151,8 +165,8 @@ class ManagerAnalyticsNotifier extends StateNotifier<ManagerAnalyticsState> {
     state = ManagerAnalyticsState.loading();
 
     final tripsResult = await _tripRepository.getTrips(
-      startDate: startDate,
-      endDate: endDate,
+      dateFrom: startDate,
+      dateTo: endDate,
     );
 
     tripsResult.fold(
@@ -160,9 +174,10 @@ class ManagerAnalyticsNotifier extends StateNotifier<ManagerAnalyticsState> {
         state = ManagerAnalyticsState.error(failure.message);
       },
       (trips) {
-        // Similar calculation as loadAnalytics but for custom range
-        // For brevity, reusing the same logic
-        loadAnalytics();
+        state = _buildAnalyticsState(
+          trips,
+          referenceDate: endDate,
+        );
       },
     );
   }

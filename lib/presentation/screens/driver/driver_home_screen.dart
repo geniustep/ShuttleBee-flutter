@@ -83,7 +83,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    DateFormat('EEEE، d MMMM yyyy', 'ar').format(DateTime.now()),
+                    DateFormat('EEEE، d MMMM yyyy', 'ar')
+                        .format(DateTime.now()),
                     style: AppTextStyles.bodySmall.copyWith(
                       color: Colors.white70,
                     ),
@@ -166,7 +167,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
             value,
             style: AppTextStyles.heading3.copyWith(color: color),
           ),
-          const SizedBox(height: AppSpacing.xxs),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             title,
             style: AppTextStyles.caption,

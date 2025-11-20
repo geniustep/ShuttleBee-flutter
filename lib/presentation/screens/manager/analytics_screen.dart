@@ -5,6 +5,7 @@ import 'package:shuttlebee/core/theme/app_colors.dart';
 import 'package:shuttlebee/core/theme/app_spacing.dart';
 import 'package:shuttlebee/core/theme/app_text_styles.dart';
 import 'package:shuttlebee/presentation/providers/manager/manager_analytics_notifier.dart';
+import 'package:shuttlebee/presentation/providers/manager/manager_analytics_state.dart';
 
 /// Analytics Screen - شاشة التحليلات المتقدمة
 class AnalyticsScreen extends ConsumerStatefulWidget {
@@ -103,7 +104,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
         children: [
           const Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: AppSpacing.md),
-          Text(error, style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
+          Text(error,
+              style: AppTextStyles.bodyMedium, textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.md),
           ElevatedButton(
             onPressed: _loadAnalytics,
@@ -154,8 +156,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xs),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -241,7 +243,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           value: '${state.completionRate.toStringAsFixed(1)}%',
           target: '95%',
           progress: state.completionRate / 100,
-          color: state.completionRate >= 90 ? AppColors.success : AppColors.warning,
+          color: state.completionRate >= 90
+              ? AppColors.success
+              : AppColors.warning,
         ),
         const SizedBox(height: AppSpacing.sm),
         _buildKPICard(
@@ -249,7 +253,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           value: '${state.onTimePercentage.toStringAsFixed(1)}%',
           target: '85%',
           progress: state.onTimePercentage / 100,
-          color: state.onTimePercentage >= 80 ? AppColors.success : AppColors.warning,
+          color: state.onTimePercentage >= 80
+              ? AppColors.success
+              : AppColors.warning,
         ),
         const SizedBox(height: AppSpacing.sm),
         _buildKPICard(
@@ -319,7 +325,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               'متوسط التأخير',
               '${state.averageDelayMinutes.toStringAsFixed(0)} دقيقة',
               Icons.timer_off,
-              state.averageDelayMinutes <= 5 ? AppColors.success : AppColors.error,
+              state.averageDelayMinutes <= 5
+                  ? AppColors.success
+                  : AppColors.error,
             ),
             const Divider(height: AppSpacing.lg),
             _buildMetricRow(

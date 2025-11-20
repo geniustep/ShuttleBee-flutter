@@ -28,8 +28,11 @@ class UserModel with _$UserModel {
   factory UserModel.fromBridgeCoreResponse(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] as int,
-      name: json['name'] as String,
-      email: json['email'] as String,
+      name: (json['name'] as String?) ??
+          (json['full_name'] as String?) ??
+          (json['username'] as String?) ??
+          '',
+      email: json['email'] as String? ?? '',
       role: _parseRole(json),
       phone: json['phone'] as String?,
       avatar: json['image_url'] as String?,

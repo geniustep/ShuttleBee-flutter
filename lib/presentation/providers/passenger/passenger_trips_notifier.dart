@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/core/di/injection.dart';
+import 'package:shuttlebee/domain/entities/trip_entity.dart';
 import 'package:shuttlebee/domain/repositories/trip_repository.dart';
 import 'package:shuttlebee/presentation/providers/passenger/passenger_trips_state.dart';
 
@@ -37,22 +39,32 @@ class PassengerTripsNotifier extends StateNotifier<PassengerTripsState> {
 
           // Filter upcoming trips
           final upcoming = allTrips
-              .where((trip) => trip.date.isAfter(todayEnd) && !trip.isDone)
+              .where(
+                (trip) =>
+                    trip.date.isAfter(todayEnd) && !trip.state.isCompleted,
+              )
               .toList();
 
           // Filter completed trips
-          final completed =
-              allTrips.where((trip) => trip.isDone).take(10).toList();
+          final completed = allTrips
+              .where((trip) => trip.state == TripState.done)
+              .take(10)
+              .toList();
 
           // Find active trip
-          final active =
-              today.firstWhere((trip) => trip.isOngoing, orElse: () => today.first);
+          TripEntity? active;
+          if (today.isNotEmpty) {
+            active = today.firstWhere(
+              (trip) => trip.isOngoing,
+              orElse: () => today.first,
+            );
+          }
 
           state = state.copyWith(
             todayTrips: today,
             upcomingTrips: upcoming,
             completedTrips: completed,
-            activeTrip: active.isOngoing ? active : null,
+            activeTrip: active?.isOngoing == true ? active : null,
             isLoading: false,
             error: null,
           );
@@ -69,7 +81,7 @@ class PassengerTripsNotifier extends StateNotifier<PassengerTripsState> {
   }
 
   /// Select active trip
-  void setActiveTrip(trip) {
+  void setActiveTrip(TripEntity trip) {
     state = state.copyWith(activeTrip: trip);
   }
 }

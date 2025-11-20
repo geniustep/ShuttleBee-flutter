@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:shuttlebee/core/di/injection.dart';
 import 'package:shuttlebee/core/services/location_service.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
+import 'package:shuttlebee/domain/entities/trip_line_entity.dart';
 import 'package:shuttlebee/domain/repositories/trip_line_repository.dart';
 import 'package:shuttlebee/domain/repositories/trip_repository.dart';
 import 'package:shuttlebee/presentation/providers/active_trip_state.dart';
@@ -184,7 +184,7 @@ class ActiveTripNotifier extends StateNotifier<ActiveTripState> {
   }
 
   /// تحديث راكب في القائمة
-  void _updatePassengerInList(updatedTripLine) {
+  void _updatePassengerInList(TripLineEntity updatedTripLine) {
     final updatedPassengers = state.passengers.map((passenger) {
       if (passenger.id == updatedTripLine.id) {
         return updatedTripLine;

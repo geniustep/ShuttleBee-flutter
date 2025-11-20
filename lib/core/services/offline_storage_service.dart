@@ -24,9 +24,9 @@ class OfflineStorageService {
       await Hive.openBox(_syncQueueBox);
       await Hive.openBox(_settingsBox);
 
-      Logger.info('Offline storage initialized successfully');
+      AppLogger.info('Offline storage initialized successfully');
     } catch (e) {
-      Logger.error('Failed to initialize offline storage: $e');
+      AppLogger.error('Failed to initialize offline storage: $e');
       rethrow;
     }
   }
@@ -38,9 +38,9 @@ class OfflineStorageService {
     try {
       final box = Hive.box(_tripsBox);
       await box.put(tripData['id'], tripData);
-      Logger.debug('Trip ${tripData['id']} saved offline');
+      AppLogger.debug('Trip ${tripData['id']} saved offline');
     } catch (e) {
-      Logger.error('Failed to save trip offline: $e');
+      AppLogger.error('Failed to save trip offline: $e');
     }
   }
 
@@ -50,9 +50,9 @@ class OfflineStorageService {
       final box = Hive.box(_tripsBox);
       final tripMap = {for (var trip in trips) trip['id']: trip};
       await box.putAll(tripMap);
-      Logger.debug('${trips.length} trips saved offline');
+      AppLogger.debug('${trips.length} trips saved offline');
     } catch (e) {
-      Logger.error('Failed to save trips offline: $e');
+      AppLogger.error('Failed to save trips offline: $e');
     }
   }
 
@@ -62,7 +62,7 @@ class OfflineStorageService {
       final box = Hive.box(_tripsBox);
       return box.get(tripId);
     } catch (e) {
-      Logger.error('Failed to get trip from offline storage: $e');
+      AppLogger.error('Failed to get trip from offline storage: $e');
       return null;
     }
   }
@@ -73,7 +73,7 @@ class OfflineStorageService {
       final box = Hive.box(_tripsBox);
       return box.values.cast<Map<String, dynamic>>().toList();
     } catch (e) {
-      Logger.error('Failed to get all trips from offline storage: $e');
+      AppLogger.error('Failed to get all trips from offline storage: $e');
       return [];
     }
   }
@@ -83,9 +83,9 @@ class OfflineStorageService {
     try {
       final box = Hive.box(_tripsBox);
       await box.delete(tripId);
-      Logger.debug('Trip $tripId deleted from offline storage');
+      AppLogger.debug('Trip $tripId deleted from offline storage');
     } catch (e) {
-      Logger.error('Failed to delete trip from offline storage: $e');
+      AppLogger.error('Failed to delete trip from offline storage: $e');
     }
   }
 
@@ -94,9 +94,9 @@ class OfflineStorageService {
     try {
       final box = Hive.box(_tripsBox);
       await box.clear();
-      Logger.debug('All trips cleared from offline storage');
+      AppLogger.debug('All trips cleared from offline storage');
     } catch (e) {
-      Logger.error('Failed to clear trips: $e');
+      AppLogger.error('Failed to clear trips: $e');
     }
   }
 
@@ -109,9 +109,9 @@ class OfflineStorageService {
       final box = Hive.box(_syncQueueBox);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       await box.put(timestamp, operation);
-      Logger.debug('Operation added to sync queue');
+      AppLogger.debug('Operation added to sync queue');
     } catch (e) {
-      Logger.error('Failed to add operation to sync queue: $e');
+      AppLogger.error('Failed to add operation to sync queue: $e');
     }
   }
 
@@ -121,7 +121,7 @@ class OfflineStorageService {
       final box = Hive.box(_syncQueueBox);
       return box.values.cast<Map<String, dynamic>>().toList();
     } catch (e) {
-      Logger.error('Failed to get sync queue: $e');
+      AppLogger.error('Failed to get sync queue: $e');
       return [];
     }
   }
@@ -131,9 +131,9 @@ class OfflineStorageService {
     try {
       final box = Hive.box(_syncQueueBox);
       await box.delete(timestamp);
-      Logger.debug('Operation removed from sync queue');
+      AppLogger.debug('Operation removed from sync queue');
     } catch (e) {
-      Logger.error('Failed to remove operation from sync queue: $e');
+      AppLogger.error('Failed to remove operation from sync queue: $e');
     }
   }
 
@@ -142,9 +142,9 @@ class OfflineStorageService {
     try {
       final box = Hive.box(_syncQueueBox);
       await box.clear();
-      Logger.debug('Sync queue cleared');
+      AppLogger.debug('Sync queue cleared');
     } catch (e) {
-      Logger.error('Failed to clear sync queue: $e');
+      AppLogger.error('Failed to clear sync queue: $e');
     }
   }
 
@@ -156,7 +156,7 @@ class OfflineStorageService {
       final box = Hive.box(_settingsBox);
       await box.put(key, value);
     } catch (e) {
-      Logger.error('Failed to save setting: $e');
+      AppLogger.error('Failed to save setting: $e');
     }
   }
 
@@ -166,7 +166,7 @@ class OfflineStorageService {
       final box = Hive.box(_settingsBox);
       return box.get(key, defaultValue: defaultValue) as T?;
     } catch (e) {
-      Logger.error('Failed to get setting: $e');
+      AppLogger.error('Failed to get setting: $e');
       return defaultValue;
     }
   }
@@ -192,7 +192,7 @@ class OfflineStorageService {
 
       return tripsBox.length + passengersBox.length + syncBox.length;
     } catch (e) {
-      Logger.error('Failed to get cache size: $e');
+      AppLogger.error('Failed to get cache size: $e');
       return 0;
     }
   }
@@ -202,9 +202,9 @@ class OfflineStorageService {
     try {
       await clearTrips();
       await clearSyncQueue();
-      Logger.info('All offline data cleared');
+      AppLogger.info('All offline data cleared');
     } catch (e) {
-      Logger.error('Failed to clear all offline data: $e');
+      AppLogger.error('Failed to clear all offline data: $e');
     }
   }
 

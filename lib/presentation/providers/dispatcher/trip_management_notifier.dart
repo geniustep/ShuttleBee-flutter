@@ -15,14 +15,14 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
 
   /// Load trips
   Future<void> loadTrips({
-    DateTime? startDate,
-    DateTime? endDate,
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) async {
     state = TripManagementState.loading();
 
     final result = await _tripRepository.getTrips(
-      startDate: startDate,
-      endDate: endDate,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
     );
 
     result.fold(
@@ -113,7 +113,6 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
     int? driverId,
     DateTime? plannedStartTime,
     DateTime? plannedArrivalTime,
-    String? notes,
   }) async {
     state = state.copyWith(isCreating: true, error: null);
 
@@ -126,7 +125,6 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
       driverId: driverId,
       plannedStartTime: plannedStartTime,
       plannedArrivalTime: plannedArrivalTime,
-      notes: notes,
     );
 
     return result.fold(
@@ -162,12 +160,11 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
     int? driverId,
     DateTime? plannedStartTime,
     DateTime? plannedArrivalTime,
-    String? notes,
   }) async {
     state = state.copyWith(isUpdating: true, error: null);
 
     final result = await _tripRepository.updateTrip(
-      tripId: tripId,
+      id: tripId,
       name: name,
       date: date,
       tripType: tripType,
@@ -176,7 +173,6 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
       driverId: driverId,
       plannedStartTime: plannedStartTime,
       plannedArrivalTime: plannedArrivalTime,
-      notes: notes,
     );
 
     return result.fold(
@@ -207,10 +203,10 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
   }
 
   /// Cancel trip
-  Future<bool> cancelTrip(int tripId, {String? reason}) async {
+  Future<bool> cancelTrip(int tripId) async {
     state = state.copyWith(isUpdating: true, error: null);
 
-    final result = await _tripRepository.cancelTrip(tripId, reason: reason);
+    final result = await _tripRepository.cancelTrip(tripId);
 
     return result.fold(
       (failure) {
@@ -272,8 +268,8 @@ class TripManagementNotifier extends StateNotifier<TripManagementState> {
   /// Refresh trips
   Future<void> refresh() async {
     await loadTrips(
-      startDate: state.filterStartDate,
-      endDate: state.filterEndDate,
+      dateFrom: state.filterStartDate,
+      dateTo: state.filterEndDate,
     );
   }
 }

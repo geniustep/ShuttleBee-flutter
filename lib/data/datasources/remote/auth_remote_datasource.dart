@@ -3,9 +3,8 @@ import 'package:shuttlebee/core/services/bridgecore_service.dart';
 import 'package:shuttlebee/data/models/auth_model.dart';
 import 'package:shuttlebee/data/models/user_model.dart';
 
-/// مصدر البيانات البعيد للمصادقة
+/// Remote auth data source
 abstract class AuthRemoteDataSource {
-  /// تسجيل الدخول
   Future<AuthModel> login({
     required String url,
     required String database,
@@ -13,14 +12,18 @@ abstract class AuthRemoteDataSource {
     required String password,
   });
 
-  /// تسجيل الخروج
   Future<void> logout();
 
-  /// الحصول على المستخدم الحالي
   Future<UserModel> getCurrentUser();
+
+  Future<void> connectSystem({
+    required String url,
+    required String database,
+    required String username,
+    required String password,
+  });
 }
 
-/// تنفيذ AuthRemoteDataSource
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl(this._bridgeCoreService);
 
@@ -41,7 +44,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         password: password,
       );
 
-      return AuthModel.fromJson(response);
+      return AuthModel(
+        accessToken: response['access_token'] as String,
+        refreshToken: response['refresh_token'] as String,
+        tokenType: (response['token_type'] as String?) ?? 'Bearer',
+        expiresIn: (response['expires_in'] as int?) ?? 0,
+        systemId: response['system_id'] as String?,
+      );
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -61,6 +70,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await _bridgeCoreService.getCurrentUser();
       return UserModel.fromBridgeCoreResponse(response);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> connectSystem({
+    required String url,
+    required String database,
+    required String username,
+    required String password,
+  }) async {
+    try {
+      await _bridgeCoreService.connectSystem(
+        url: url,
+        database: database,
+        username: username,
+        password: password,
+      );
     } catch (e) {
       throw ServerException(e.toString());
     }

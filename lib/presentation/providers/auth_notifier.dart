@@ -49,7 +49,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       password: password,
     );
 
-    result.fold(
+    await result.fold(
       (failure) {
         AppLogger.error('Login failed', failure.message);
         state = AuthState.error(failure.message);

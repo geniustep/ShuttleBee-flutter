@@ -8,7 +8,7 @@ import 'package:shuttlebee/domain/entities/auth_entity.dart';
 import 'package:shuttlebee/domain/entities/user_entity.dart';
 import 'package:shuttlebee/domain/repositories/auth_repository.dart';
 
-/// تنفيذ AuthRepository
+/// AuthRepository implementation
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required this.remoteDataSource,
@@ -39,8 +39,14 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      // حفظ التوكنات محلياً
+      // Save tokens then connect system using bearer
       await localDataSource.saveTokens(authModel);
+      await remoteDataSource.connectSystem(
+        url: url,
+        database: database,
+        username: username,
+        password: password,
+      );
 
       return Right(authModel.toEntity());
     } on ServerException catch (e) {
@@ -57,18 +63,15 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
-      // تسجيل الخروج من الخادم
       if (await networkInfo.isConnected) {
         await remoteDataSource.logout();
       }
 
-      // حذف البيانات المحلية
       await localDataSource.clearTokens();
       await localDataSource.clearCachedUser();
 
       return const Right(null);
     } on ServerException catch (e) {
-      // حتى لو فشل تسجيل الخروج من الخادم، نقوم بحذف البيانات المحلية
       await localDataSource.clearTokens();
       await localDataSource.clearCachedUser();
       return Left(ServerFailure(e.message));
@@ -80,7 +83,6 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, UserEntity>> getCurrentUser() async {
     if (!await networkInfo.isConnected) {
-      // محاولة جلب المستخدم من الكاش
       try {
         final cachedUser = await localDataSource.getCachedUser();
         if (cachedUser != null) {
@@ -88,16 +90,13 @@ class AuthRepositoryImpl implements AuthRepository {
         }
         return const Left(NetworkFailure());
       } on CacheException catch (e) {
-        return Left(CacheFailure(message: e.message));
+        return Left(CacheFailure(e.message));
       }
     }
 
     try {
       final userModel = await remoteDataSource.getCurrentUser();
-
-      // حفظ بيانات المستخدم محلياً
       await localDataSource.cacheUser(userModel);
-
       return Right(userModel.toEntity());
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
@@ -112,8 +111,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, AuthEntity>> refreshToken() async {
-    // يتم التعامل مع refresh token تلقائياً في AuthInterceptor
-    // هذه الطريقة للاستخدام اليدوي إذا لزم الأمر
     return const Left(
       ServerFailure('Token refresh is handled automatically'),
     );
@@ -121,18 +118,16 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<bool> isAuthenticated() async {
-    return await localDataSource.hasToken();
+    return localDataSource.hasToken();
   }
 
   @override
   Future<String?> getAccessToken() async {
-    return await localDataSource.getAccessToken();
+    return localDataSource.getAccessToken();
   }
 
   @override
   Future<void> saveTokens(AuthEntity auth) async {
-    // تحويل Entity إلى Model للحفظ
-    // ملاحظة: يتطلب إنشاء fromEntity في AuthModel
     throw UnimplementedError('Use login method instead');
   }
 

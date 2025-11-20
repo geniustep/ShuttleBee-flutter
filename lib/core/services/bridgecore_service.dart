@@ -2,7 +2,7 @@ import 'package:shuttlebee/core/config/app_config.dart';
 import 'package:shuttlebee/core/constants/api_constants.dart';
 import 'package:shuttlebee/core/network/api_client.dart';
 
-/// خدمة BridgeCore للتعامل مع Odoo
+/// BridgeCore service wrapper for Odoo integration.
 class BridgeCoreService {
   BridgeCoreService({
     required ApiClient apiClient,
@@ -11,49 +11,65 @@ class BridgeCoreService {
         _systemId = systemId ?? AppConfig.systemId;
 
   final ApiClient _apiClient;
-  final String _systemId;
+  String _systemId;
 
   // ========== Authentication ==========
 
-  /// تسجيل الدخول
   Future<Map<String, dynamic>> login({
     required String url,
     required String database,
     required String username,
     required String password,
-    String systemType = 'odoo',
-    String systemVersion = '18.0',
   }) async {
     return _apiClient.post(
       ApiConstants.authLogin,
       data: {
-        'system_credentials': {
-          'system_type': systemType,
-          'system_version': systemVersion,
-          'credentials': {
-            'url': url,
-            'database': database,
-            'username': username,
-            'password': password,
-          },
-        },
+        'database': database,
+        'username': username,
+        'password': password,
+        'url': url,
       },
     );
   }
 
-  /// تسجيل الخروج
   Future<Map<String, dynamic>> logout() async {
     return _apiClient.post(ApiConstants.authLogout);
   }
 
-  /// الحصول على بيانات المستخدم الحالي
+  /// Connect system after authentication (requires bearer token)
+  Future<Map<String, dynamic>> connectSystem({
+    required String url,
+    required String database,
+    required String username,
+    required String password,
+    String systemType = 'odoo',
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.connect(_systemId),
+      data: {
+        'url': url,
+        'database': database,
+        'username': username,
+        'password': password,
+        'system_type': systemType,
+      },
+    );
+
+    // امنع استبدال المعرف بالرقم الداخلي؛ نحدّث فقط إذا كان معرفاً نصياً صالحاً
+    final dynamic returnedId = response['system_id'];
+    if (returnedId is String && returnedId.trim().isNotEmpty) {
+      _systemId = returnedId;
+    }
+
+    return response;
+  }
+
   Future<Map<String, dynamic>> getCurrentUser() async {
     return _apiClient.get(ApiConstants.authMe);
   }
 
   // ========== CRUD Operations ==========
 
-  /// قراءة سجلات (Read)
   Future<List<Map<String, dynamic>>> read({
     required String model,
     List<int>? ids,
@@ -75,7 +91,6 @@ class BridgeCoreService {
     return List<Map<String, dynamic>>.from(response['data'] as List);
   }
 
-  /// البحث (Search)
   Future<List<Map<String, dynamic>>> search({
     required String model,
     List<dynamic>? domain,
@@ -85,9 +100,9 @@ class BridgeCoreService {
     String? order,
   }) async {
     final response = await _apiClient.post(
-      ApiConstants.search(_systemId),
-      queryParameters: {'model': model},
+      ApiConstants.odooSearchRead(_systemId),
       data: {
+        'model': model,
         if (domain != null) 'domain': domain,
         if (fields != null) 'fields': fields,
         if (limit != null) 'limit': limit,
@@ -96,10 +111,11 @@ class BridgeCoreService {
       },
     );
 
-    return List<Map<String, dynamic>>.from(response['data'] as List);
+    final raw =
+        (response['result'] ?? response['data']) as List<dynamic>? ?? <dynamic>[];
+    return List<Map<String, dynamic>>.from(raw);
   }
 
-  /// إنشاء سجل (Create)
   Future<Map<String, dynamic>> create({
     required String model,
     required Map<String, dynamic> data,
@@ -117,7 +133,6 @@ class BridgeCoreService {
     return response['data'] as Map<String, dynamic>;
   }
 
-  /// تحديث سجل (Update)
   Future<Map<String, dynamic>> update({
     required String model,
     required int id,
@@ -136,7 +151,6 @@ class BridgeCoreService {
     return response['data'] as Map<String, dynamic>;
   }
 
-  /// حذف سجل (Delete)
   Future<bool> delete({
     required String model,
     required int id,
@@ -151,7 +165,6 @@ class BridgeCoreService {
 
   // ========== Custom Method Execution ==========
 
-  /// تنفيذ method مخصص
   Future<Map<String, dynamic>> executeMethod({
     required String model,
     required String method,
@@ -179,7 +192,6 @@ class BridgeCoreService {
 
   // ========== Batch Operations ==========
 
-  /// تنفيذ عدة عمليات دفعة واحدة
   Future<List<Map<String, dynamic>>> batch(
     List<Map<String, dynamic>> operations,
   ) async {
@@ -193,7 +205,6 @@ class BridgeCoreService {
 
   // ========== File Operations ==========
 
-  /// رفع ملف
   Future<Map<String, dynamic>> uploadFile(
     String filePath, {
     Map<String, dynamic>? metadata,
@@ -205,7 +216,6 @@ class BridgeCoreService {
     );
   }
 
-  /// تحميل ملف
   Future<void> downloadFile(int fileId, String savePath) async {
     return _apiClient.downloadFile(
       ApiConstants.download(_systemId, fileId),
@@ -213,7 +223,6 @@ class BridgeCoreService {
     );
   }
 
-  /// توليد تقرير
   Future<Map<String, dynamic>> generateReport({
     required String reportType,
     required String format,
@@ -230,14 +239,12 @@ class BridgeCoreService {
 
   // ========== Barcode Operations ==========
 
-  /// البحث عن باركود
   Future<Map<String, dynamic>> lookupBarcode(String barcode) async {
     return _apiClient.get(
       ApiConstants.barcodeLookup(_systemId, barcode),
     );
   }
 
-  /// البحث عن منتج بالاسم
   Future<List<Map<String, dynamic>>> searchByName(String query) async {
     final response = await _apiClient.get(
       ApiConstants.barcodeSearch(_systemId),
@@ -249,7 +256,6 @@ class BridgeCoreService {
 
   // ========== Helper Methods ==========
 
-  /// قراءة سجل واحد بالـ ID
   Future<Map<String, dynamic>> readOne({
     required String model,
     required int id,
@@ -268,7 +274,6 @@ class BridgeCoreService {
     return results.first;
   }
 
-  /// عد السجلات
   Future<int> count({
     required String model,
     List<dynamic>? domain,
@@ -282,7 +287,6 @@ class BridgeCoreService {
     return response.length;
   }
 
-  /// البحث عن سجل واحد
   Future<Map<String, dynamic>?> searchOne({
     required String model,
     List<dynamic>? domain,

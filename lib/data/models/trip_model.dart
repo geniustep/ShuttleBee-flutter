@@ -45,10 +45,10 @@ class TripModel with _$TripModel {
   factory TripModel.fromBridgeCoreResponse(Map<String, dynamic> json) {
     return TripModel(
       id: json['id'] as int,
-      name: json['name'] as String,
-      date: DateTime.parse(json['date'] as String),
-      tripType: TripType.fromString(json['trip_type'] as String),
-      state: TripState.fromString(json['state'] as String),
+      name: _parseString(json['name']) ?? '',
+      date: _parseDateTime(json['date']) ?? DateTime.now(),
+      tripType: _parseTripType(json['trip_type']) ?? TripType.pickup,
+      state: _parseTripState(json['state']) ?? TripState.draft,
       groupId: _parseId(json['group_id']),
       groupName: _parseName(json['group_id']),
       driverId: _parseId(json['driver_id']),
@@ -107,6 +107,31 @@ class TripModel with _$TripModel {
     if (value is int) return value;
     if (value is List && value.isNotEmpty) return value[0] as int;
     return null;
+  }
+
+  static String? _parseString(dynamic value) {
+    if (value == null || value == false) return null;
+    return value.toString();
+  }
+
+  static TripType? _parseTripType(dynamic value) {
+    final str = _parseString(value);
+    if (str == null || str.isEmpty) return null;
+    try {
+      return TripType.fromString(str);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static TripState? _parseTripState(dynamic value) {
+    final str = _parseString(value);
+    if (str == null || str.isEmpty) return null;
+    try {
+      return TripState.fromString(str);
+    } catch (_) {
+      return null;
+    }
   }
 
   static String? _parseName(dynamic value) {

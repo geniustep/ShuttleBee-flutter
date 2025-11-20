@@ -1,24 +1,23 @@
 import 'package:equatable/equatable.dart';
 
-/// كيان المصادقة (Auth Entity)
+/// Auth Entity
 class AuthEntity extends Equatable {
   const AuthEntity({
     required this.accessToken,
     required this.refreshToken,
-    required this.tokenType,
-    required this.expiresIn,
+    this.tokenType = 'Bearer',
+    this.expiresIn = 0,
+    this.systemId,
   });
 
   final String accessToken;
   final String refreshToken;
   final String tokenType;
   final int expiresIn;
+  final String? systemId;
 
-  /// تاريخ انتهاء الصلاحية
-  DateTime get expiryDate =>
-      DateTime.now().add(Duration(seconds: expiresIn));
+  DateTime get expiryDate => DateTime.now().add(Duration(seconds: expiresIn));
 
-  /// هل التوكن منتهي الصلاحية
   bool get isExpired => DateTime.now().isAfter(expiryDate);
 
   @override
@@ -27,5 +26,6 @@ class AuthEntity extends Equatable {
         refreshToken,
         tokenType,
         expiresIn,
+        systemId,
       ];
 }

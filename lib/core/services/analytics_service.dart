@@ -13,9 +13,9 @@ class AnalyticsService {
   Future<void> initialize() async {
     try {
       await _analytics.setAnalyticsCollectionEnabled(true);
-      Logger.info('Analytics service initialized');
+      AppLogger.info('Analytics service initialized');
     } catch (e) {
-      Logger.error('Failed to initialize analytics: $e');
+      AppLogger.error('Failed to initialize analytics: $e');
     }
   }
 
@@ -25,9 +25,9 @@ class AnalyticsService {
   Future<void> setUserId(String userId) async {
     try {
       await _analytics.setUserId(id: userId);
-      Logger.debug('User ID set: $userId');
+      AppLogger.debug('User ID set: $userId');
     } catch (e) {
-      Logger.error('Failed to set user ID: $e');
+      AppLogger.error('Failed to set user ID: $e');
     }
   }
 
@@ -38,9 +38,9 @@ class AnalyticsService {
   }) async {
     try {
       await _analytics.setUserProperty(name: name, value: value);
-      Logger.debug('User property set: $name = $value');
+      AppLogger.debug('User property set: $name = $value');
     } catch (e) {
-      Logger.error('Failed to set user property: $e');
+      AppLogger.error('Failed to set user property: $e');
     }
   }
 
@@ -56,9 +56,9 @@ class AnalyticsService {
         screenName: screenName,
         screenClass: screenClass ?? screenName,
       );
-      Logger.debug('Screen view logged: $screenName');
+      AppLogger.debug('Screen view logged: $screenName');
     } catch (e) {
-      Logger.error('Failed to log screen view: $e');
+      AppLogger.error('Failed to log screen view: $e');
     }
   }
 
@@ -68,9 +68,9 @@ class AnalyticsService {
   Future<void> logLogin(String method) async {
     try {
       await _analytics.logLogin(loginMethod: method);
-      Logger.debug('Login logged: $method');
+      AppLogger.debug('Login logged: $method');
     } catch (e) {
-      Logger.error('Failed to log login: $e');
+      AppLogger.error('Failed to log login: $e');
     }
   }
 
@@ -78,9 +78,9 @@ class AnalyticsService {
   Future<void> logLogout() async {
     try {
       await _analytics.logEvent(name: 'logout');
-      Logger.debug('Logout logged');
+      AppLogger.debug('Logout logged');
     } catch (e) {
-      Logger.error('Failed to log logout: $e');
+      AppLogger.error('Failed to log logout: $e');
     }
   }
 
@@ -99,9 +99,9 @@ class AnalyticsService {
           'trip_type': tripType,
         },
       );
-      Logger.debug('Trip started logged: $tripId');
+      AppLogger.debug('Trip started logged: $tripId');
     } catch (e) {
-      Logger.error('Failed to log trip started: $e');
+      AppLogger.error('Failed to log trip started: $e');
     }
   }
 
@@ -122,9 +122,9 @@ class AnalyticsService {
           'distance_km': distance,
         },
       );
-      Logger.debug('Trip completed logged: $tripId');
+      AppLogger.debug('Trip completed logged: $tripId');
     } catch (e) {
-      Logger.error('Failed to log trip completed: $e');
+      AppLogger.error('Failed to log trip completed: $e');
     }
   }
 
@@ -141,9 +141,9 @@ class AnalyticsService {
           'reason': reason,
         },
       );
-      Logger.debug('Trip cancelled logged: $tripId');
+      AppLogger.debug('Trip cancelled logged: $tripId');
     } catch (e) {
-      Logger.error('Failed to log trip cancelled: $e');
+      AppLogger.error('Failed to log trip cancelled: $e');
     }
   }
 
@@ -163,7 +163,7 @@ class AnalyticsService {
         },
       );
     } catch (e) {
-      Logger.error('Failed to log passenger boarded: $e');
+      AppLogger.error('Failed to log passenger boarded: $e');
     }
   }
 
@@ -181,7 +181,7 @@ class AnalyticsService {
         },
       );
     } catch (e) {
-      Logger.error('Failed to log passenger absent: $e');
+      AppLogger.error('Failed to log passenger absent: $e');
     }
   }
 
@@ -191,9 +191,9 @@ class AnalyticsService {
   Future<void> logAppLaunch() async {
     try {
       await _analytics.logAppOpen();
-      Logger.debug('App launch logged');
+      AppLogger.debug('App launch logged');
     } catch (e) {
-      Logger.error('Failed to log app launch: $e');
+      AppLogger.error('Failed to log app launch: $e');
     }
   }
 
@@ -213,7 +213,7 @@ class AnalyticsService {
         },
       );
     } catch (e) {
-      Logger.error('Failed to log error: $e');
+      AppLogger.error('Failed to log error: $e');
     }
   }
 
@@ -229,9 +229,9 @@ class AnalyticsService {
         name: name,
         parameters: parameters,
       );
-      Logger.debug('Custom event logged: $name');
+      AppLogger.debug('Custom event logged: $name');
     } catch (e) {
-      Logger.error('Failed to log custom event: $e');
+      AppLogger.error('Failed to log custom event: $e');
     }
   }
 
@@ -250,9 +250,9 @@ class AnalyticsService {
           'date_range': dateRange,
         },
       );
-      Logger.debug('Report generation logged: $reportType');
+      AppLogger.debug('Report generation logged: $reportType');
     } catch (e) {
-      Logger.error('Failed to log report generation: $e');
+      AppLogger.error('Failed to log report generation: $e');
     }
   }
 
@@ -268,7 +268,7 @@ class AnalyticsService {
         },
       );
     } catch (e) {
-      Logger.error('Failed to log dashboard view: $e');
+      AppLogger.error('Failed to log dashboard view: $e');
     }
   }
 
@@ -277,7 +277,7 @@ class AnalyticsService {
     try {
       await _analytics.logEvent(name: 'analytics_viewed');
     } catch (e) {
-      Logger.error('Failed to log analytics view: $e');
+      AppLogger.error('Failed to log analytics view: $e');
     }
   }
 }

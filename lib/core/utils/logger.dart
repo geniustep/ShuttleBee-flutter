@@ -1,14 +1,14 @@
 import 'package:logger/logger.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
 
-/// Logger للتطبيق
+/// Centralized logger wrapper for the app.
 class AppLogger {
   AppLogger._();
 
   static final Logger _logger = Logger(
     filter: ProductionFilter(),
     printer: PrettyPrinter(
-      methodCount: 2,
+      methodCount: 0, // keep logs concise (no stack frames for info/debug)
       errorMethodCount: 8,
       lineLength: 120,
       colors: true,
@@ -56,7 +56,7 @@ class AppLogger {
   /// Log network request
   static void logRequest(String method, String url, {dynamic data}) {
     if (AppConfig.enableLogging) {
-      debug('→ $method $url', data);
+      debug('> $method $url', data);
     }
   }
 
@@ -69,15 +69,15 @@ class AppLogger {
   }) {
     if (AppConfig.enableLogging) {
       if (statusCode >= 200 && statusCode < 300) {
-        debug('← $method $url [$statusCode]', data);
+        debug('< $method $url [$statusCode]', data);
       } else {
-        error('← $method $url [$statusCode]', data);
+        error('< $method $url [$statusCode]', data);
       }
     }
   }
 
   /// Log network error
   static void logNetworkError(String method, String url, dynamic error) {
-    AppLogger.error('✗ $method $url', error);
+    AppLogger.error('x $method $url', error);
   }
 }

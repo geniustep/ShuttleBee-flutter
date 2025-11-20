@@ -1,32 +1,47 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:shuttlebee/domain/entities/auth_entity.dart';
 
-part 'auth_model.freezed.dart';
-part 'auth_model.g.dart';
+/// Auth model (manual, no code generation)
+class AuthModel {
+  const AuthModel({
+    required this.accessToken,
+    required this.refreshToken,
+    this.tokenType = 'Bearer',
+    this.expiresIn = 0,
+    this.systemId,
+  });
 
-/// نموذج المصادقة (Auth Model)
-@freezed
-class AuthModel with _$AuthModel {
-  const AuthModel._();
+  final String accessToken;
+  final String refreshToken;
+  final String tokenType;
+  final int expiresIn;
+  final String? systemId;
 
-  const factory AuthModel({
-    required String accessToken,
-    required String refreshToken,
-    required String tokenType,
-    required int expiresIn,
-  }) = _AuthModel;
+  factory AuthModel.fromJson(Map<String, dynamic> json) {
+    return AuthModel(
+      accessToken: json['access_token'] as String,
+      refreshToken: json['refresh_token'] as String,
+      tokenType: (json['token_type'] as String?) ?? 'Bearer',
+      expiresIn: (json['expires_in'] as int?) ?? 0,
+      systemId: json['system_id'] as String?,
+    );
+  }
 
-  /// من JSON
-  factory AuthModel.fromJson(Map<String, dynamic> json) =>
-      _$AuthModelFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'access_token': accessToken,
+        'refresh_token': refreshToken,
+        'token_type': tokenType,
+        'expires_in': expiresIn,
+        if (systemId != null) 'system_id': systemId,
+      };
 
-  /// تحويل إلى Entity
+  /// Convert to domain entity
   AuthEntity toEntity() {
     return AuthEntity(
       accessToken: accessToken,
       refreshToken: refreshToken,
       tokenType: tokenType,
       expiresIn: expiresIn,
+      systemId: systemId,
     );
   }
 }

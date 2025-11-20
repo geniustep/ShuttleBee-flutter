@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shuttlebee/core/di/injection.dart';
 import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
+import 'package:shuttlebee/domain/entities/trip_entity.dart';
 import 'package:shuttlebee/domain/repositories/trip_repository.dart';
 import 'package:shuttlebee/presentation/providers/trip_list_state.dart';
 
@@ -73,12 +74,13 @@ class TripListNotifier extends StateNotifier<TripListState> {
       return trip;
     }).toList();
 
-    state = state.copyWith(trips: updatedTrips);
+    state = state.copyWith(trips: updatedTrips as List<TripEntity>);
   }
 
   /// إزالة رحلة من القائمة
   void removeTrip(int tripId) {
-    final updatedTrips = state.trips.where((trip) => trip.id != tripId).toList();
+    final updatedTrips =
+        state.trips.where((trip) => trip.id != tripId).toList();
     state = state.copyWith(trips: updatedTrips);
   }
 

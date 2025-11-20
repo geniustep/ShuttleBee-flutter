@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
 import 'package:shuttlebee/core/constants/api_constants.dart';
 import 'package:shuttlebee/core/errors/exceptions.dart';
+import 'package:shuttlebee/core/errors/failures.dart';
 import 'package:shuttlebee/core/network/dio_interceptors.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
 
@@ -21,14 +22,18 @@ class ApiClient {
 
   /// Setup Dio configurations و Interceptors
   void _setupDio() {
+    final normalizedBase = AppConfig.apiBaseUrl.endsWith('/')
+        ? AppConfig.apiBaseUrl.substring(0, AppConfig.apiBaseUrl.length - 1)
+        : AppConfig.apiBaseUrl;
+
     _dio.options = BaseOptions(
-      baseUrl: AppConfig.apiBaseUrl,
+      baseUrl: '$normalizedBase/',
       connectTimeout: ApiConstants.connectTimeout,
       receiveTimeout: ApiConstants.receiveTimeout,
       sendTimeout: ApiConstants.sendTimeout,
       headers: {
-        ApiConstants.contentTypeJson: ApiConstants.contentTypeJson,
-        ApiConstants.acceptJson: ApiConstants.acceptJson,
+        'Content-Type': ApiConstants.contentTypeJson,
+        'Accept': ApiConstants.acceptJson,
       },
       validateStatus: (status) => status != null && status < 500,
     );
@@ -240,7 +245,7 @@ class ApiClient {
   }
 
   /// Handle Dio Exception
-  Exception _handleDioException(DioException e) {
+  Object _handleDioException(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:

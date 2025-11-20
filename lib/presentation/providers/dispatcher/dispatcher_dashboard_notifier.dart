@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shuttlebee/core/di/injection.dart';
+import 'package:shuttlebee/core/enums/enums.dart';
+import 'package:shuttlebee/domain/repositories/trip_repository.dart';
 import 'package:shuttlebee/presentation/providers/dispatcher/dispatcher_dashboard_state.dart';
 
 /// Dispatcher Dashboard Notifier
@@ -9,7 +11,7 @@ class DispatcherDashboardNotifier
     this._tripRepository,
   ) : super(const DispatcherDashboardState());
 
-  final _tripRepository;
+  final TripRepository _tripRepository;
 
   /// Load dashboard statistics
   Future<void> loadDashboardStats() async {
@@ -23,8 +25,8 @@ class DispatcherDashboardNotifier
 
       // Load trips for today
       final tripsResult = await _tripRepository.getTrips(
-        startDate: todayStart,
-        endDate: todayEnd,
+        dateFrom: todayStart,
+        dateTo: todayEnd,
       );
 
       tripsResult.fold(
@@ -33,8 +35,10 @@ class DispatcherDashboardNotifier
         },
         (trips) {
           final ongoing = trips.where((t) => t.isOngoing).length;
-          final completed = trips.where((t) => t.isDone).length;
-          final cancelled = trips.where((t) => t.isCancelled).length;
+          final completed =
+              trips.where((t) => t.state == TripState.done).length;
+          final cancelled =
+              trips.where((t) => t.state == TripState.cancelled).length;
 
           state = state.copyWith(
             totalTripsToday: trips.length,

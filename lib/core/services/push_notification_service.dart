@@ -24,9 +24,9 @@ class PushNotificationService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        Logger.info('Push notification permission granted');
+        AppLogger.info('Push notification permission granted');
       } else {
-        Logger.warning('Push notification permission denied');
+        AppLogger.warning('Push notification permission denied');
         return;
       }
 
@@ -35,7 +35,7 @@ class PushNotificationService {
 
       // Get FCM token
       final token = await _firebaseMessaging.getToken();
-      Logger.info('FCM Token: $token');
+      AppLogger.info('FCM Token: $token');
 
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -44,17 +44,19 @@ class PushNotificationService {
       FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
       // Handle background messages
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
 
-      Logger.info('Push notification service initialized');
+      AppLogger.info('Push notification service initialized');
     } catch (e) {
-      Logger.error('Failed to initialize push notifications: $e');
+      AppLogger.error('Failed to initialize push notifications: $e');
     }
   }
 
   /// Initialize local notifications
   Future<void> _initializeLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -74,7 +76,7 @@ class PushNotificationService {
 
   /// Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
-    Logger.info('Received foreground message: ${message.messageId}');
+    AppLogger.info('Received foreground message: ${message.messageId}');
 
     final notification = message.notification;
     if (notification != null) {
@@ -88,13 +90,13 @@ class PushNotificationService {
 
   /// Handle notification tap
   void _handleNotificationTap(RemoteMessage message) {
-    Logger.info('Notification tapped: ${message.messageId}');
+    AppLogger.info('Notification tapped: ${message.messageId}');
     // TODO: Navigate to appropriate screen based on message data
   }
 
   /// Handle notification tap (local)
   void _onNotificationTap(NotificationResponse response) {
-    Logger.info('Local notification tapped: ${response.payload}');
+    AppLogger.info('Local notification tapped: ${response.payload}');
     // TODO: Navigate to appropriate screen based on payload
   }
 
@@ -137,9 +139,9 @@ class PushNotificationService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      Logger.info('Subscribed to topic: $topic');
+      AppLogger.info('Subscribed to topic: $topic');
     } catch (e) {
-      Logger.error('Failed to subscribe to topic: $e');
+      AppLogger.error('Failed to subscribe to topic: $e');
     }
   }
 
@@ -147,9 +149,9 @@ class PushNotificationService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      Logger.info('Unsubscribed from topic: $topic');
+      AppLogger.info('Unsubscribed from topic: $topic');
     } catch (e) {
-      Logger.error('Failed to unsubscribe from topic: $e');
+      AppLogger.error('Failed to unsubscribe from topic: $e');
     }
   }
 
@@ -158,7 +160,7 @@ class PushNotificationService {
     try {
       return await _firebaseMessaging.getToken();
     } catch (e) {
-      Logger.error('Failed to get FCM token: $e');
+      AppLogger.error('Failed to get FCM token: $e');
       return null;
     }
   }
@@ -188,6 +190,6 @@ class PushNotificationService {
 /// Must be top-level function
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  Logger.info('Background message received: ${message.messageId}');
+  AppLogger.info('Background message received: ${message.messageId}');
   // Handle background message
 }

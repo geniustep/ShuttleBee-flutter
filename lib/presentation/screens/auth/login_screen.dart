@@ -6,6 +6,7 @@ import 'package:shuttlebee/core/theme/app_colors.dart';
 import 'package:shuttlebee/core/theme/app_spacing.dart';
 import 'package:shuttlebee/core/theme/app_text_styles.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
+import 'package:shuttlebee/presentation/providers/auth_notifier.dart';
 
 /// شاشة تسجيل الدخول
 class LoginScreen extends ConsumerStatefulWidget {
@@ -27,11 +28,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill from .env for development
-    _urlController.text = AppConfig.odooUrl;
-    _databaseController.text = AppConfig.odooDatabase;
-    _usernameController.text = AppConfig.odooUsername;
-    _passwordController.text = AppConfig.odooPassword;
+    // Pre-fill only in debug builds to avoid exposing secrets in production
+    if (AppConfig.isDebugMode) {
+      _urlController.text = AppConfig.odooUrl;
+      _databaseController.text = AppConfig.odooDatabase;
+      _usernameController.text = AppConfig.odooUsername;
+      _passwordController.text = AppConfig.odooPassword;
+    }
   }
 
   @override

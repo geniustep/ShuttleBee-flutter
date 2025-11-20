@@ -27,37 +27,44 @@ class ApiConstants {
   static const Duration retryDelay = Duration(seconds: 2);
 
   // BridgeCore Endpoints
-  static const String authLogin = '/auth/login';
-  static const String authLogout = '/auth/logout';
-  static const String authRefresh = '/auth/refresh';
-  static const String authMe = '/auth/me';
+  static const String apiPrefix = 'api/v1';
+
+  static const String authLogin = '$apiPrefix/auth/login';
+  static const String authLogout = '$apiPrefix/auth/logout';
+  static const String authRefresh = '$apiPrefix/auth/refresh';
+  static const String authMe = '$apiPrefix/auth/me';
 
   // CRUD Operations
-  static String read(String systemId) => '/systems/$systemId/read';
-  static String create(String systemId) => '/systems/$systemId/create';
+  static String read(String systemId) => 'systems/$systemId/read';
+  static String create(String systemId) => 'systems/$systemId/create';
   static String update(String systemId, int id) =>
-      '/systems/$systemId/update/$id';
+      'systems/$systemId/update/$id';
   static String delete(String systemId, int id) =>
-      '/systems/$systemId/delete/$id';
-  static String search(String systemId) => '/systems/$systemId/search';
+      'systems/$systemId/delete/$id';
+  // Odoo unified search_read
+  static String odooSearchRead(String systemId) =>
+      'api/v1/systems/$systemId/odoo/search_read';
 
   // Custom Methods
-  static String execute(String systemId) => '/systems/$systemId/execute';
+  static String execute(String systemId) => 'systems/$systemId/execute';
 
   // Batch Operations
-  static const String batch = '/batch';
+  static const String batch = 'batch';
 
   // Files
-  static String upload(String systemId) => '/files/$systemId/upload';
+  static String upload(String systemId) => 'files/$systemId/upload';
   static String download(String systemId, int id) =>
-      '/files/$systemId/download/$id';
+      'files/$systemId/download/$id';
   static String report(String systemId, String type) =>
-      '/files/$systemId/report/$type';
+      'files/$systemId/report/$type';
 
   // Barcode
   static String barcodeLookup(String systemId, String barcode) =>
-      '/barcode/$systemId/lookup/$barcode';
-  static String barcodeSearch(String systemId) => '/barcode/$systemId/search';
+      'barcode/$systemId/lookup/$barcode';
+  static String barcodeSearch(String systemId) => 'barcode/$systemId/search';
+
+  // System connect
+  static String connect(String systemId) => 'systems/$systemId/connect';
 
   // Headers
   static const String contentTypeJson = 'application/json';

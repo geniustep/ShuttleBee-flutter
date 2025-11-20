@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// حالة الراكب في الرحلة
 enum TripLineStatus {
+  pending('pending', 'معلق', 'Pending', Color(0xFFFFC107)),
   notStarted('not_started', 'لم تبدأ', 'Not Started', Color(0xFF9E9E9E)),
   absent('absent', 'غائب', 'Absent', Color(0xFFF44336)),
   boarded('boarded', 'صعد', 'Boarded', Color(0xFF2196F3)),
@@ -22,6 +23,8 @@ enum TripLineStatus {
   /// تحويل من String إلى Enum
   static TripLineStatus fromString(String value) {
     switch (value.toLowerCase()) {
+      case 'pending':
+        return TripLineStatus.pending;
       case 'not_started':
         return TripLineStatus.notStarted;
       case 'absent':
@@ -40,6 +43,9 @@ enum TripLineStatus {
     return languageCode == 'ar' ? arabicLabel : englishLabel;
   }
 
+  /// هل هي حالة معلقة
+  bool get isPending => this == TripLineStatus.pending;
+
   /// هل الراكب على متن الحافلة
   bool get isOnBoard => this == TripLineStatus.boarded;
 
@@ -50,10 +56,12 @@ enum TripLineStatus {
   bool get isAbsent => this == TripLineStatus.absent;
 
   /// هل يمكن وضع علامة صعد
-  bool get canMarkBoarded => this == TripLineStatus.notStarted;
+  bool get canMarkBoarded =>
+      this == TripLineStatus.notStarted || this == TripLineStatus.pending;
 
   /// هل يمكن وضع علامة غائب
-  bool get canMarkAbsent => this == TripLineStatus.notStarted;
+  bool get canMarkAbsent =>
+      this == TripLineStatus.notStarted || this == TripLineStatus.pending;
 
   /// هل يمكن وضع علامة نزل
   bool get canMarkDropped => this == TripLineStatus.boarded;
