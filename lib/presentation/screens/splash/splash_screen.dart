@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shuttlebee/core/di/injection.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shuttlebee/core/theme/app_colors.dart';
 import 'package:shuttlebee/core/theme/app_spacing.dart';
 import 'package:shuttlebee/core/theme/app_text_styles.dart';
-import 'package:shuttlebee/presentation/screens/auth/login_screen.dart';
+import 'package:shuttlebee/presentation/providers/auth_notifier.dart';
+import 'package:shuttlebee/routes/app_router.dart';
 
 /// Splash Screen - شاشة البداية
 class SplashScreen extends ConsumerStatefulWidget {
@@ -27,27 +28,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (!mounted) return;
 
-    // تحقق من حالة المصادقة
-    final authRepository = ref.read(authRepositoryProvider);
-    final isAuthenticated = await authRepository.isAuthenticated();
+    final authState = ref.read(authNotifierProvider);
 
     if (!mounted) return;
 
-    if (isAuthenticated) {
-      // TODO: Navigate to home screen based on user role
-      // For now, go to login
-      _navigateToLogin();
+    if (authState.isAuthenticated && authState.user != null) {
+      // الانتقال للصفحة الرئيسية حسب الدور
+      final homeRoute = _getHomeRouteForUser(authState.user!.role);
+      context.go(homeRoute);
     } else {
-      _navigateToLogin();
+      // الانتقال لصفحة تسجيل الدخول
+      context.go(AppRoutes.login);
     }
   }
 
-  void _navigateToLogin() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
-    );
+  String _getHomeRouteForUser(role) {
+    switch (role) {
+      case UserRole.driver:
+        return AppRoutes.driverHome;
+      case UserRole.dispatcher:
+        return AppRoutes.dispatcherHome;
+      case UserRole.passenger:
+        return AppRoutes.passengerHome;
+      case UserRole.manager:
+        return AppRoutes.managerHome;
+      default:
+        return AppRoutes.login;
+    }
   }
 
   @override

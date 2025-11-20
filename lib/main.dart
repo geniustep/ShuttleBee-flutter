@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
 import 'package:shuttlebee/core/theme/app_theme.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
-import 'package:shuttlebee/presentation/screens/splash/splash_screen.dart';
+import 'package:shuttlebee/presentation/providers/auth_notifier.dart';
+import 'package:shuttlebee/routes/app_router.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
@@ -41,12 +42,15 @@ void main() async {
 }
 
 /// ShuttleBee App Widget
-class ShuttleBeeApp extends StatelessWidget {
+class ShuttleBeeApp extends ConsumerWidget {
   const ShuttleBeeApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authNotifierProvider);
+    final router = createRouter(authState);
+
+    return MaterialApp.router(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
 
@@ -62,8 +66,8 @@ class ShuttleBeeApp extends StatelessWidget {
         Locale('en'),
       ],
 
-      // Home
-      home: const SplashScreen(),
+      // Router
+      routerConfig: router,
 
       // Builder for overlay widgets
       builder: (context, child) {

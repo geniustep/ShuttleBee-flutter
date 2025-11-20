@@ -22,7 +22,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -47,65 +46,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    try {
-      final authRepository = ref.read(authRepositoryProvider);
-
-      final result = await authRepository.login(
-        url: _urlController.text.trim(),
-        database: _databaseController.text.trim(),
-        username: _usernameController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (!mounted) return;
-
-      result.fold(
-        (failure) {
-          // Show error
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(failure.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        },
-        (auth) {
-          // Success - get user and navigate
-          AppLogger.info('Login successful');
-          _navigateToHome();
-        },
-      );
-    } catch (e) {
-      AppLogger.error('Login error', e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('حدث خطأ: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  void _navigateToHome() {
-    // TODO: Navigate to appropriate home screen based on user role
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم تسجيل الدخول بنجاح'),
-        backgroundColor: AppColors.success,
-      ),
+    // استخدام AuthNotifier بدلاً من Repository مباشرة
+    await ref.read(authNotifierProvider.notifier).login(
+      url: _urlController.text.trim(),
+      database: _databaseController.text.trim(),
+      username: _usernameController.text.trim(),
+      password: _passwordController.text,
     );
+
+    if (!mounted) return;
+
+    // التحقق من حالة المصادقة بعد المحاولة
+    final authState = ref.read(authNotifierProvider);
+
+    if (authState.error != null) {
+      // عرض الخطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authState.error!),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } else if (authState.isAuthenticated) {
+      // النجاح - سيتم التوجيه تلقائياً عبر GoRouter
+      AppLogger.info('Login successful - redirecting...');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -238,11 +210,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Login Button
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
+                    onPressed: isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 56),
                     ),
-                    child: _isLoading
+                    child: isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
