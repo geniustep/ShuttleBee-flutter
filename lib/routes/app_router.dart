@@ -9,6 +9,9 @@ import 'package:shuttlebee/presentation/screens/dispatcher/trip_list_screen.dart
 import 'package:shuttlebee/presentation/screens/driver/active_trip_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/driver_home_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/trip_detail_screen.dart';
+import 'package:shuttlebee/presentation/screens/manager/analytics_screen.dart';
+import 'package:shuttlebee/presentation/screens/manager/manager_home_screen.dart';
+import 'package:shuttlebee/presentation/screens/manager/reports_screen.dart';
 import 'package:shuttlebee/presentation/screens/passenger/passenger_home_screen.dart';
 import 'package:shuttlebee/presentation/screens/passenger/trip_tracking_screen.dart';
 import 'package:shuttlebee/presentation/screens/splash/splash_screen.dart';
@@ -128,9 +131,26 @@ GoRouter createRouter(AuthState authState) {
       // Manager Home
       GoRoute(
         path: AppRoutes.managerHome,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Manager Home - Coming Soon')),
-        ),
+        builder: (context, state) => const ManagerHomeScreen(),
+        routes: [
+          // Analytics
+          GoRoute(
+            path: 'analytics',
+            builder: (context, state) => const AnalyticsScreen(),
+          ),
+          // Reports
+          GoRoute(
+            path: 'reports',
+            builder: (context, state) => const ReportsScreen(),
+          ),
+          // System Overview
+          GoRoute(
+            path: 'overview',
+            builder: (context, state) => const Scaffold(
+              body: Center(child: Text('نظرة عامة على النظام - قريباً')),
+            ),
+          ),
+        ],
       ),
     ],
 
