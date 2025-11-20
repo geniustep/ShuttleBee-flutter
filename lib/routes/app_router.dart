@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/presentation/providers/auth_state.dart';
 import 'package:shuttlebee/presentation/screens/auth/login_screen.dart';
+import 'package:shuttlebee/presentation/screens/driver/active_trip_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/driver_home_screen.dart';
+import 'package:shuttlebee/presentation/screens/driver/trip_detail_screen.dart';
 import 'package:shuttlebee/presentation/screens/splash/splash_screen.dart';
 
 /// Route Names
@@ -55,6 +57,26 @@ GoRouter createRouter(AuthState authState) {
       GoRoute(
         path: AppRoutes.driverHome,
         builder: (context, state) => const DriverHomeScreen(),
+        routes: [
+          // Trip Detail
+          GoRoute(
+            path: 'trip/:tripId',
+            builder: (context, state) {
+              final tripId = int.parse(state.pathParameters['tripId']!);
+              return TripDetailScreen(tripId: tripId);
+            },
+            routes: [
+              // Active Trip
+              GoRoute(
+                path: 'active',
+                builder: (context, state) {
+                  final tripId = int.parse(state.pathParameters['tripId']!);
+                  return ActiveTripScreen(tripId: tripId);
+                },
+              ),
+            ],
+          ),
+        ],
       ),
 
       // Dispatcher Home

@@ -10,8 +10,10 @@ import 'package:shuttlebee/data/datasources/remote/auth_remote_datasource.dart';
 import 'package:shuttlebee/data/datasources/remote/trip_line_remote_datasource.dart';
 import 'package:shuttlebee/data/datasources/remote/trip_remote_datasource.dart';
 import 'package:shuttlebee/data/repositories/auth_repository_impl.dart';
+import 'package:shuttlebee/data/repositories/trip_line_repository_impl.dart';
 import 'package:shuttlebee/data/repositories/trip_repository_impl.dart';
 import 'package:shuttlebee/domain/repositories/auth_repository.dart';
+import 'package:shuttlebee/domain/repositories/trip_line_repository.dart';
 import 'package:shuttlebee/domain/repositories/trip_repository.dart';
 
 // ========== External Dependencies ==========
@@ -93,8 +95,15 @@ final tripRepositoryProvider = Provider<TripRepository>((ref) {
   );
 });
 
+/// TripLine Repository Provider
+final tripLineRepositoryProvider = Provider<TripLineRepository>((ref) {
+  return TripLineRepositoryImpl(
+    remoteDataSource: ref.watch(tripLineRemoteDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
 // TODO: Add more repository providers:
-// - tripLineRepositoryProvider
 // - stopRepositoryProvider
 // - vehicleRepositoryProvider
 // - partnerRepositoryProvider

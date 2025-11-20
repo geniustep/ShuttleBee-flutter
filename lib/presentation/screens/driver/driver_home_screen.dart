@@ -254,7 +254,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to trip detail
+          context.go('${AppRoutes.driverHome}/trip/${trip.id}');
         },
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         child: Padding(
@@ -410,7 +410,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Handle trip action
+                      context.go('${AppRoutes.driverHome}/trip/${trip.id}');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
