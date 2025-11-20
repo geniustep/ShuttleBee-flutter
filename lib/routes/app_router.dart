@@ -3,9 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/presentation/providers/auth_state.dart';
 import 'package:shuttlebee/presentation/screens/auth/login_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/dispatcher_home_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/real_time_monitoring_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/trip_list_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/active_trip_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/driver_home_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/trip_detail_screen.dart';
+import 'package:shuttlebee/presentation/screens/passenger/passenger_home_screen.dart';
+import 'package:shuttlebee/presentation/screens/passenger/trip_tracking_screen.dart';
 import 'package:shuttlebee/presentation/screens/splash/splash_screen.dart';
 
 /// Route Names
@@ -82,17 +87,42 @@ GoRouter createRouter(AuthState authState) {
       // Dispatcher Home
       GoRoute(
         path: AppRoutes.dispatcherHome,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Dispatcher Home - Coming Soon')),
-        ),
+        builder: (context, state) => const DispatcherHomeScreen(),
+        routes: [
+          // Trip Management
+          GoRoute(
+            path: 'trips',
+            builder: (context, state) => const TripListScreen(),
+          ),
+          // Real-time Monitoring
+          GoRoute(
+            path: 'monitor',
+            builder: (context, state) => const RealTimeMonitoringScreen(),
+          ),
+          // Vehicles (placeholder for now)
+          GoRoute(
+            path: 'vehicles',
+            builder: (context, state) => const Scaffold(
+              body: Center(child: Text('إدارة المركبات - قريباً')),
+            ),
+          ),
+        ],
       ),
 
       // Passenger Home
       GoRoute(
         path: AppRoutes.passengerHome,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Passenger Home - Coming Soon')),
-        ),
+        builder: (context, state) => const PassengerHomeScreen(),
+        routes: [
+          // Trip Tracking
+          GoRoute(
+            path: 'track/:tripId',
+            builder: (context, state) {
+              final tripId = int.parse(state.pathParameters['tripId']!);
+              return TripTrackingScreen(tripId: tripId);
+            },
+          ),
+        ],
       ),
 
       // Manager Home
