@@ -69,7 +69,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await _bridgeCoreService.getCurrentUser();
-      return UserModel.fromBridgeCoreResponse(response);
+      // API يعيد user ككائن منفصل: {user: {...}, tenant: {...}}
+      // نحتاج لاستخراج user من response
+      final userData = response['user'] as Map<String, dynamic>? ?? response;
+      return UserModel.fromBridgeCoreResponse(userData);
     } catch (e) {
       throw ServerException(e.toString());
     }

@@ -16,13 +16,20 @@ class AppConfig {
   static String get systemId => dotenv.env['SYSTEM_ID'] ?? 'odoo-prod';
 
   // Odoo Configuration
+  // Note: في Tenant-Based API، هذه القيم غير مستخدمة
+  // لأن كل العمليات تمر عبر bridgecore.geniura.com
+  // Odoo credentials يتم جلبها تلقائياً من قاعدة البيانات للـ tenant
+  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooUrl =>
       dotenv.env['ODOO_URL'] ?? 'https://demo.odoo.com';
 
+  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooDatabase => dotenv.env['ODOO_DATABASE'] ?? 'demo';
 
+  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooUsername => dotenv.env['ODOO_USERNAME'] ?? 'admin';
 
+  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooPassword => dotenv.env['ODOO_PASSWORD'] ?? 'admin';
 
   // Token Configuration
@@ -66,6 +73,11 @@ class AppConfig {
   static bool get enableLogging =>
       dotenv.env['ENABLE_LOGGING']?.toLowerCase() == 'true';
 
+  // Development Role Override (for testing purposes only)
+  // Set to 'dispatcher', 'driver', 'passenger', or 'manager' to force a role in debug mode
+  static String? get debugRoleOverride =>
+      dotenv.env['DEBUG_ROLE_OVERRIDE']?.toLowerCase();
+
   /// طباعة التكوين الحالي (للتطوير فقط)
   static void printConfig() {
     if (isDebugMode) {
@@ -77,6 +89,7 @@ class AppConfig {
       print('App Name: $appName');
       print('App Version: $appVersion');
       print('Debug Mode: $isDebugMode');
+      print('Debug Role Override: ${debugRoleOverride ?? "none (will use dispatcher as default)"}');
       print('Enable Logging: $enableLogging');
       print('================================');
     }

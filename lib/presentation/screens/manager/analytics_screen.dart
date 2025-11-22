@@ -19,7 +19,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAnalytics();
+    // تأجيل تحميل التحليلات حتى ينتهي بناء الـ widget tree
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAnalytics();
+    });
   }
 
   Future<void> _loadAnalytics() async {

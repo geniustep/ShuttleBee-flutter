@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
-import 'package:shuttlebee/core/di/injection.dart';
 import 'package:shuttlebee/core/theme/app_colors.dart';
 import 'package:shuttlebee/core/theme/app_spacing.dart';
 import 'package:shuttlebee/core/theme/app_text_styles.dart';
@@ -18,22 +17,26 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  // في Tenant-Based API، لا حاجة لـ URL و Database
+  // يمكن جعلها اختيارية للتوافق مع API القديم
   final _urlController = TextEditingController();
   final _databaseController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _showAdvancedFields = false; // إخفاء الحقول المتقدمة افتراضياً
 
   @override
   void initState() {
     super.initState();
     // Pre-fill only in debug builds to avoid exposing secrets in production
     if (AppConfig.isDebugMode) {
-      _urlController.text = AppConfig.odooUrl;
-      _databaseController.text = AppConfig.odooDatabase;
       _usernameController.text = AppConfig.odooUsername;
       _passwordController.text = AppConfig.odooPassword;
+      // URL و Database اختيارية في Tenant-Based API
+      _urlController.text = AppConfig.odooUrl;
+      _databaseController.text = AppConfig.odooDatabase;
     }
   }
 
@@ -50,6 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     // استخدام AuthNotifier بدلاً من Repository مباشرة
+    // في Tenant-Based API، URL و Database اختيارية
     await ref.read(authNotifierProvider.notifier).login(
       url: _urlController.text.trim(),
       database: _databaseController.text.trim(),
@@ -128,18 +132,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: AppSpacing.xl),
 
-                  // URL Field
+                  // Email Field (مطلوب)
                   TextFormField(
-                    controller: _urlController,
+                    controller: _usernameController,
                     decoration: const InputDecoration(
-                      labelText: 'رابط Odoo',
-                      prefixIcon: Icon(Icons.link),
+                      labelText: 'البريد الإلكتروني',
+                      prefixIcon: Icon(Icons.email),
+                      hintText: 'أدخل بريدك الإلكتروني',
                     ),
-                    keyboardType: TextInputType.url,
+                    keyboardType: TextInputType.emailAddress,
                     textDirection: TextDirection.ltr,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال رابط Odoo';
+                        return 'يرجى إدخال البريد الإلكتروني';
+                      }
+                      // التحقق من صحة البريد الإلكتروني (اختياري)
+                      if (!value.contains('@')) {
+                        return 'يرجى إدخال بريد إلكتروني صحيح';
                       }
                       return null;
                     },
@@ -147,24 +156,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: AppSpacing.md),
 
-                  // Database Field
-                  TextFormField(
-                    controller: _databaseController,
-                    decoration: const InputDecoration(
-                      labelText: 'قاعدة البيانات',
-                      prefixIcon: Icon(Icons.storage),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال اسم قاعدة البيانات';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Username Field
+                  // Password Field
                   TextFormField(
                     controller: _usernameController,
                     decoration: const InputDecoration(
@@ -208,6 +200,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       return null;
                     },
                   ),
+
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Advanced Options Toggle
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _showAdvancedFields = !_showAdvancedFields;
+                      });
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _showAdvancedFields
+                              ? 'إخفاء الحقول المتقدمة'
+                              : 'إظهار الحقول المتقدمة (اختياري)',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Icon(
+                          _showAdvancedFields
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Advanced Fields (URL & Database) - اختيارية
+                  if (_showAdvancedFields) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: _urlController,
+                      decoration: const InputDecoration(
+                        labelText: 'رابط Odoo (اختياري)',
+                        prefixIcon: Icon(Icons.link),
+                        hintText: 'للتوافق مع API القديم',
+                      ),
+                      keyboardType: TextInputType.url,
+                      textDirection: TextDirection.ltr,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: _databaseController,
+                      decoration: const InputDecoration(
+                        labelText: 'قاعدة البيانات (اختياري)',
+                        prefixIcon: Icon(Icons.storage),
+                        hintText: 'للتوافق مع API القديم',
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: AppSpacing.xl),
 

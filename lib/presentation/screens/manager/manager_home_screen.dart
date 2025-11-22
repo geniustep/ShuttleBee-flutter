@@ -21,7 +21,8 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAnalytics();
+    // Schedule after first frame so provider changes don't happen during build.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAnalytics());
   }
 
   Future<void> _loadAnalytics() async {

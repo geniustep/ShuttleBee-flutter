@@ -22,7 +22,10 @@ class _TripListScreenState extends ConsumerState<TripListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTrips();
+    // تأجيل تحميل الرحلات حتى ينتهي بناء الـ widget tree
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadTrips();
+    });
   }
 
   Future<void> _loadTrips() async {

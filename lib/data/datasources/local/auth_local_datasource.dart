@@ -42,17 +42,28 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveTokens(AuthModel auth) async {
     try {
+      // حفظ Access Token
       await _secureStorage.write(
         key: AppConstants.accessTokenKey,
         value: auth.accessToken,
       );
+      
+      // التحقق من أن التوكن تم حفظه
+      final savedToken = await _secureStorage.read(
+        key: AppConstants.accessTokenKey,
+      );
+      
+      if (savedToken == null || savedToken != auth.accessToken) {
+        throw CacheException('فشل التحقق من حفظ Access Token');
+      }
 
+      // حفظ Refresh Token
       await _secureStorage.write(
         key: AppConstants.refreshTokenKey,
         value: auth.refreshToken,
       );
     } catch (e) {
-      throw CacheException('فشل حفظ التوكنات');
+      throw CacheException('فشل حفظ التوكنات: ${e.toString()}');
     }
   }
 

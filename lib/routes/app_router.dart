@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shuttlebee/core/enums/enums.dart';
+import 'package:shuttlebee/presentation/providers/auth_notifier.dart';
 import 'package:shuttlebee/presentation/providers/auth_state.dart';
 import 'package:shuttlebee/presentation/screens/auth/login_screen.dart';
 import 'package:shuttlebee/presentation/screens/dispatcher/dispatcher_home_screen.dart';
@@ -22,31 +24,108 @@ class AppRoutes {
   static const String login = '/login';
   static const String driverHome = '/driver';
   static const String dispatcherHome = '/dispatcher';
+  static const String dispatcherTrips = '/dispatcher/trips';
+  static const String dispatcherMonitor = '/dispatcher/monitor';
+  static const String dispatcherVehicles = '/dispatcher/vehicles';
   static const String passengerHome = '/passenger';
   static const String managerHome = '/manager';
 }
 
-/// Create GoRouter instance
-GoRouter createRouter(AuthState authState) {
+/// ChangeNotifier wrapper for AuthState to use with GoRouter refreshListenable
+class _AuthStateNotifier extends ChangeNotifier {
+  _AuthStateNotifier(this._state);
+
+  AuthState _state;
+
+  AuthState get currentState => _state;
+
+  void updateState(AuthState newState) {
+    if (_state.isAuthenticated != newState.isAuthenticated ||
+        _state.user?.id != newState.user?.id) {
+      _state = newState;
+      notifyListeners();
+    }
+  }
+}
+
+/// Create GoRouter instance with Riverpod support
+GoRouter createRouter(AuthState authState, WidgetRef? ref) {
+  // إنشاء ChangeNotifier للـ authState
+  final authNotifier = _AuthStateNotifier(authState);
+
+  // إذا كان ref متوفراً، مراقبة تغييرات authState
+  if (ref != null) {
+    ref.listen<AuthState>(
+      authNotifierProvider,
+      (previous, next) {
+        // تحديث authState في GoRouter عند التغيير
+        authNotifier.updateState(next);
+      },
+    );
+  }
+
   return GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
+    refreshListenable: authNotifier,
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
-      final isOnSplash = state.matchedLocation == AppRoutes.splash;
-      final isOnLogin = state.matchedLocation == AppRoutes.login;
+      // استخدام authState الحالي من notifier
+      final currentAuthState = authNotifier.currentState;
+      final isAuthenticated = currentAuthState.isAuthenticated;
+      final userRole = currentAuthState.user?.role;
+      final location = state.matchedLocation;
+      final isOnSplash = location == AppRoutes.splash;
+      final isOnLogin = location == AppRoutes.login;
 
-      // إذا كان المستخدم غير مصادق ولا يوجد على صفحة Login أو Splash
+      // Debug logging
+      if (isAuthenticated) {
+        debugPrint(
+            '[GoRouter] User authenticated: ${currentAuthState.user?.name}, role: $userRole');
+      }
+
+      // لو المستخدم غير مصدَّق، امنعه من دخول أي شاشة غير اللوجين/سبلاش
       if (!isAuthenticated && !isOnLogin && !isOnSplash) {
+        debugPrint('[GoRouter] Redirecting to login - not authenticated');
         return AppRoutes.login;
       }
 
-      // إذا كان المستخدم مصادق ويحاول الوصول لـ Login
+      // لو مصدَّق وحاول يدخل صفحة اللوجين، رجّعه للهوم حسب الدور
       if (isAuthenticated && isOnLogin) {
-        return _getHomeRouteForUser(authState.user?.role);
+        final homeRoute = _getHomeRouteForUser(userRole);
+        debugPrint('[GoRouter] User authenticated, redirecting to: $homeRoute');
+        return homeRoute;
       }
 
-      return null; // لا يوجد إعادة توجيه
+      // التحقق من الصلاحيات - منع المستخدم من الوصول لمسارات لا تنتمي لدوره
+      if (isAuthenticated && userRole != null) {
+        // منع السائق من الوصول لمسارات المرسل
+        if (userRole != UserRole.dispatcher &&
+            location.startsWith(AppRoutes.dispatcherHome)) {
+          return _getHomeRouteForUser(userRole);
+        }
+
+        // منع المرسل من الوصول لمسارات السائق
+        if (userRole != UserRole.driver &&
+            location.startsWith(AppRoutes.driverHome)) {
+          return _getHomeRouteForUser(userRole);
+        }
+
+        // منع الراكب من الوصول لمسارات السائق أو المرسل
+        if (userRole == UserRole.passenger &&
+            (location.startsWith(AppRoutes.driverHome) ||
+                location.startsWith(AppRoutes.dispatcherHome))) {
+          return _getHomeRouteForUser(userRole);
+        }
+
+        // منع المدير من الوصول لمسارات السائق أو المرسل (إلا إذا كان لديه صلاحيات)
+        if (userRole == UserRole.manager &&
+            (location.startsWith(AppRoutes.driverHome) ||
+                location.startsWith(AppRoutes.dispatcherHome))) {
+          // المدير يمكنه الوصول لجميع المسارات، لذا لا نمنعه
+        }
+      }
+
+      return null;
     },
     routes: [
       // Splash Screen
@@ -66,7 +145,6 @@ GoRouter createRouter(AuthState authState) {
         path: AppRoutes.driverHome,
         builder: (context, state) => const DriverHomeScreen(),
         routes: [
-          // Trip Detail
           GoRoute(
             path: 'trip/:tripId',
             builder: (context, state) {
@@ -74,7 +152,6 @@ GoRouter createRouter(AuthState authState) {
               return TripDetailScreen(tripId: tripId);
             },
             routes: [
-              // Active Trip
               GoRoute(
                 path: 'active',
                 builder: (context, state) {
@@ -87,26 +164,68 @@ GoRouter createRouter(AuthState authState) {
         ],
       ),
 
-      // Dispatcher Home
+      // Dispatcher Home + children
       GoRoute(
         path: AppRoutes.dispatcherHome,
         builder: (context, state) => const DispatcherHomeScreen(),
         routes: [
-          // Trip Management
           GoRoute(
             path: 'trips',
             builder: (context, state) => const TripListScreen(),
+            routes: [
+              GoRoute(
+                path: 'create',
+                builder: (context, state) => Scaffold(
+                  appBar: AppBar(
+                    title: const Text('إنشاء رحلة جديدة'),
+                  ),
+                  body: const Center(
+                    child: Text('شاشة إنشاء رحلة جديدة - قيد التطوير'),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: ':tripId',
+                builder: (context, state) {
+                  final tripId = int.parse(state.pathParameters['tripId']!);
+                  return Scaffold(
+                    appBar: AppBar(
+                      title: const Text('تفاصيل الرحلة'),
+                    ),
+                    body: Center(
+                      child: Text('تفاصيل الرحلة #$tripId - قيد التطوير'),
+                    ),
+                  );
+                },
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) {
+                      final tripId = int.parse(state.pathParameters['tripId']!);
+                      return Scaffold(
+                        appBar: AppBar(
+                          title: const Text('تعديل الرحلة'),
+                        ),
+                        body: Center(
+                          child: Text('تعديل الرحلة #$tripId - قيد التطوير'),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-          // Real-time Monitoring
           GoRoute(
             path: 'monitor',
             builder: (context, state) => const RealTimeMonitoringScreen(),
           ),
-          // Vehicles (placeholder for now)
           GoRoute(
             path: 'vehicles',
             builder: (context, state) => const Scaffold(
-              body: Center(child: Text('إدارة المركبات - قريباً')),
+              body: Center(
+                child: Text('شاشة إدارة المركبات - قيد التطوير'),
+              ),
             ),
           ),
         ],
@@ -117,7 +236,6 @@ GoRouter createRouter(AuthState authState) {
         path: AppRoutes.passengerHome,
         builder: (context, state) => const PassengerHomeScreen(),
         routes: [
-          // Trip Tracking
           GoRoute(
             path: 'track/:tripId',
             builder: (context, state) {
@@ -128,36 +246,33 @@ GoRouter createRouter(AuthState authState) {
         ],
       ),
 
-      // Manager Home
+      // Manager Home + children
       GoRoute(
         path: AppRoutes.managerHome,
         builder: (context, state) => const ManagerHomeScreen(),
         routes: [
-          // Analytics
           GoRoute(
             path: 'analytics',
             builder: (context, state) => const AnalyticsScreen(),
           ),
-          // Reports
           GoRoute(
             path: 'reports',
             builder: (context, state) => const ReportsScreen(),
           ),
-          // System Overview
           GoRoute(
             path: 'overview',
             builder: (context, state) => const Scaffold(
-              body: Center(child: Text('نظرة عامة على النظام - قريباً')),
+              body: Center(
+                child: Text('شاشة نظرة عامة على الأداء - قيد التطوير'),
+              ),
             ),
           ),
         ],
       ),
     ],
-
-    // Error handling
     errorBuilder: (context, state) => Scaffold(
       body: Center(
-        child: Text('خطأ: ${state.error}'),
+        child: Text('حدث خطأ غير متوقع:\n${state.error}'),
       ),
     ),
   );

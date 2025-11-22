@@ -6,7 +6,9 @@ import 'package:shuttlebee/core/theme/app_spacing.dart';
 import 'package:shuttlebee/core/theme/app_text_styles.dart';
 import 'package:shuttlebee/presentation/providers/auth_notifier.dart';
 import 'package:shuttlebee/presentation/providers/dispatcher/dispatcher_dashboard_notifier.dart';
+import 'package:shuttlebee/presentation/providers/dispatcher/dispatcher_dashboard_state.dart';
 import 'package:shuttlebee/routes/app_router.dart';
+import 'package:shuttlebee/domain/entities/user_entity.dart';
 
 /// Dispatcher Home Screen - الصفحة الرئيسية للمرسل
 class DispatcherHomeScreen extends ConsumerStatefulWidget {
@@ -21,7 +23,8 @@ class _DispatcherHomeScreenState extends ConsumerState<DispatcherHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDashboard();
+    // Avoid mutating providers during build by deferring to the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDashboard());
   }
 
   Future<void> _loadDashboard() async {
@@ -90,7 +93,7 @@ class _DispatcherHomeScreenState extends ConsumerState<DispatcherHomeScreen> {
                         const SizedBox(height: AppSpacing.lg),
 
                         // Statistics
-                        Text(
+                        const Text(
                           'إحصائيات اليوم',
                           style: AppTextStyles.heading3,
                         ),
@@ -143,7 +146,7 @@ class _DispatcherHomeScreenState extends ConsumerState<DispatcherHomeScreen> {
     );
   }
 
-  Widget _buildUserHeader(user) {
+  Widget _buildUserHeader(UserEntity? user) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -264,7 +267,7 @@ class _DispatcherHomeScreenState extends ConsumerState<DispatcherHomeScreen> {
     );
   }
 
-  Widget _buildTripStatistics(dashboardState) {
+  Widget _buildTripStatistics(DispatcherDashboardState dashboardState) {
     return Row(
       children: [
         Expanded(
@@ -288,7 +291,7 @@ class _DispatcherHomeScreenState extends ConsumerState<DispatcherHomeScreen> {
     );
   }
 
-  Widget _buildResourceStatistics(dashboardState) {
+  Widget _buildResourceStatistics(DispatcherDashboardState dashboardState) {
     return Column(
       children: [
         Row(

@@ -39,13 +39,19 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      // Save tokens then connect system using bearer
+      // Save tokens
+      // Note: في Tenant-Based API، لا حاجة لـ connectSystem
+      // لأن Odoo credentials يتم جلبها تلقائياً من قاعدة البيانات
+      // كل العمليات تمر عبر bridgecore.geniura.com
       await localDataSource.saveTokens(authModel);
+
+      // connectSystem غير مطلوب في Tenant-Based API
+      // لكن نستدعيه للتوافق مع الكود القديم (لا يفعل شيئاً)
       await remoteDataSource.connectSystem(
-        url: url,
-        database: database,
-        username: username,
-        password: password,
+        url: url, // غير مستخدم - للتوافق فقط
+        database: database, // غير مستخدم - للتوافق فقط
+        username: username, // غير مستخدم - للتوافق فقط
+        password: password, // غير مستخدم - للتوافق فقط
       );
 
       return Right(authModel.toEntity());

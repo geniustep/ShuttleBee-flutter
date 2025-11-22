@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bridgecore_flutter/bridgecore_flutter.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
 import 'package:shuttlebee/core/theme/app_theme.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
@@ -18,6 +19,19 @@ void main() async {
 
   // Print config (development only)
   AppConfig.printConfig();
+
+  // Initialize BridgeCore SDK
+  BridgeCore.initialize(
+    baseUrl: AppConfig.apiBaseUrl,
+    debugMode: AppConfig.isDebugMode,
+    enableRetry: true,
+    maxRetries: 3,
+    enableCache: true,
+    enableLogging: AppConfig.enableLogging,
+    logLevel: AppConfig.isDebugMode ? LogLevel.debug : LogLevel.info,
+  );
+
+  AppLogger.info('BridgeCore SDK initialized');
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -50,9 +64,13 @@ class ShuttleBeeApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
-    final router = createRouter(authState);
+    
+    // إعادة إنشاء GoRouter عند تغيير authState
+    // GoRouter سيتم إعادة إنشاؤه تلقائياً عند rebuild
+    final router = createRouter(authState, ref);
 
     return MaterialApp.router(
+      key: ValueKey(authState.isAuthenticated), // إجبار إعادة الإنشاء عند تغيير المصادقة
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
 

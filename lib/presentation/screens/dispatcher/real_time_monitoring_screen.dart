@@ -23,7 +23,10 @@ class _RealTimeMonitoringScreenState
   @override
   void initState() {
     super.initState();
-    _loadOngoingTrips();
+    // تأجيل تحميل الرحلات حتى ينتهي بناء الـ widget tree
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadOngoingTrips();
+    });
   }
 
   Future<void> _loadOngoingTrips() async {

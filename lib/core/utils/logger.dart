@@ -1,5 +1,6 @@
 import 'package:logger/logger.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
+import 'dart:convert';
 
 /// Centralized logger wrapper for the app.
 class AppLogger {
@@ -56,7 +57,12 @@ class AppLogger {
   /// Log network request
   static void logRequest(String method, String url, {dynamic data}) {
     if (AppConfig.enableLogging) {
-      debug('> $method $url', data);
+      final StringBuffer logMessage = StringBuffer('> $method $url');
+      if (data != null) {
+        logMessage.writeln();
+        logMessage.write(_prettyPrint(data));
+      }
+      debug(logMessage.toString());
     }
   }
 
@@ -68,10 +74,21 @@ class AppLogger {
     dynamic data,
   }) {
     if (AppConfig.enableLogging) {
+      final StringBuffer logMessage = StringBuffer(
+        '< $method $url [$statusCode]',
+      );
+      if (data != null) {
+        logMessage.writeln();
+        logMessage.write(_prettyPrint(data));
+      }
+
       if (statusCode >= 200 && statusCode < 300) {
-        debug('< $method $url [$statusCode]', data);
+        debug(logMessage.toString());
       } else {
-        error('< $method $url [$statusCode]', data);
+        // For error responses, we still might want to see the body, but maybe not as an exception
+        // unless it's a critical failure. Using error() here will print stack trace if we pass error obj.
+        // Since we formatted data into message, we just pass message.
+        error(logMessage.toString());
       }
     }
   }
@@ -79,5 +96,18 @@ class AppLogger {
   /// Log network error
   static void logNetworkError(String method, String url, dynamic error) {
     AppLogger.error('x $method $url', error);
+  }
+
+  /// Helper to pretty print JSON
+  static String _prettyPrint(dynamic data) {
+    try {
+      if (data is Map || data is List) {
+        const encoder = JsonEncoder.withIndent('  ');
+        return encoder.convert(data);
+      }
+      return data.toString();
+    } catch (e) {
+      return data.toString();
+    }
   }
 }

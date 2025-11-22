@@ -55,15 +55,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = AuthState.error(failure.message);
       },
       (auth) async {
+        // التحقق من أن التوكنات محفوظة
+        final isAuth = await _authRepository.isAuthenticated();
+        AppLogger.info('After login - isAuthenticated: $isAuth');
+        
+        if (!isAuth) {
+          AppLogger.error('Tokens not saved after login!');
+          state = AuthState.error('فشل حفظ التوكنات');
+          return;
+        }
+        
         // جلب بيانات المستخدم بعد تسجيل الدخول
         final userResult = await _authRepository.getCurrentUser();
         userResult.fold(
           (failure) {
+            AppLogger.error('Failed to get user after login', failure.message);
             state = AuthState.error(failure.message);
           },
           (user) {
-            AppLogger.info('Login successful: ${user.name}');
+            AppLogger.info('Login successful: ${user.name}, role: ${user.role}');
+            // تحديث الحالة كمصادق عليه
             state = AuthState.authenticated(user);
+            AppLogger.info(
+              'AuthState updated - isAuthenticated: ${state.isAuthenticated}, '
+              'user: ${user.name}, role: ${user.role}',
+            );
           },
         );
       },
