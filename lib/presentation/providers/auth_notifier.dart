@@ -72,15 +72,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
             AppLogger.error('Failed to get user after login', failure.message);
             state = AuthState.error(failure.message);
           },
-          (user) {
-            AppLogger.info('Login successful: ${user.name}, role: ${user.role}');
-            // تحديث الحالة كمصادق عليه
-            state = AuthState.authenticated(user);
-            AppLogger.info(
-              'AuthState updated - isAuthenticated: ${state.isAuthenticated}, '
-              'user: ${user.name}, role: ${user.role}',
-            );
-          },
+        (user) {
+          AppLogger.info('Login successful: ${user.name}, role: ${user.role}');
+          print('🎯 [AuthNotifier] User role: ${user.role}');
+          print('🎯 [AuthNotifier] User shuttle_role: ${user.shuttleRole}');
+          print('🎯 [AuthNotifier] User groups: ${user.groups.take(3).toList()}');
+          
+          // تحديث الحالة كمصادق عليه
+          state = AuthState.authenticated(user);
+          AppLogger.info(
+            'AuthState updated - isAuthenticated: ${state.isAuthenticated}, '
+            'user: ${user.name}, role: ${user.role}',
+          );
+        },
         );
       },
     );

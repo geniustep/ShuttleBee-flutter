@@ -34,11 +34,33 @@ class _PassengerHomeScreenState extends ConsumerState<PassengerHomeScreen> {
     await ref.read(passengerTripsNotifierProvider.notifier).loadMyTrips();
   }
 
-  Future<void> _handleLogout() async {
-    await ref.read(authNotifierProvider.notifier).logout();
-    if (mounted) {
-      context.go(AppRoutes.login);
-    }
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authNotifierProvider.notifier).logout();
+              if (mounted) {
+                context.go(AppRoutes.login);
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+            ),
+            child: const Text('تسجيل الخروج'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

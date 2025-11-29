@@ -5,16 +5,26 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shuttlebee/core/network/api_client.dart';
 import 'package:shuttlebee/core/network/network_info.dart';
 import 'package:shuttlebee/core/services/bridgecore_service.dart';
+import 'package:shuttlebee/core/services/notification_service.dart';
 import 'package:shuttlebee/data/datasources/local/auth_local_datasource.dart';
 import 'package:shuttlebee/data/datasources/remote/auth_remote_datasource.dart';
+import 'package:shuttlebee/data/datasources/remote/partner_remote_datasource.dart';
+import 'package:shuttlebee/data/datasources/remote/passenger_group_remote_datasource.dart';
 import 'package:shuttlebee/data/datasources/remote/trip_line_remote_datasource.dart';
 import 'package:shuttlebee/data/datasources/remote/trip_remote_datasource.dart';
+import 'package:shuttlebee/data/datasources/remote/vehicle_remote_datasource.dart';
 import 'package:shuttlebee/data/repositories/auth_repository_impl.dart';
+import 'package:shuttlebee/data/repositories/partner_repository_impl.dart';
+import 'package:shuttlebee/data/repositories/passenger_group_repository_impl.dart';
 import 'package:shuttlebee/data/repositories/trip_line_repository_impl.dart';
 import 'package:shuttlebee/data/repositories/trip_repository_impl.dart';
+import 'package:shuttlebee/data/repositories/vehicle_repository_impl.dart';
 import 'package:shuttlebee/domain/repositories/auth_repository.dart';
+import 'package:shuttlebee/domain/repositories/partner_repository.dart';
+import 'package:shuttlebee/domain/repositories/passenger_group_repository.dart';
 import 'package:shuttlebee/domain/repositories/trip_line_repository.dart';
 import 'package:shuttlebee/domain/repositories/trip_repository.dart';
+import 'package:shuttlebee/domain/repositories/vehicle_repository.dart';
 
 // ========== External Dependencies ==========
 
@@ -38,6 +48,11 @@ final connectivityProvider = Provider<Connectivity>((ref) {
 /// Network Info Provider
 final networkInfoProvider = Provider<NetworkInfo>((ref) {
   return NetworkInfoImpl(ref.watch(connectivityProvider));
+});
+
+/// Notification Service Provider
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService.instance;
 });
 
 /// API Client Provider
@@ -76,6 +91,22 @@ final tripLineRemoteDataSourceProvider =
   return TripLineRemoteDataSourceImpl(ref.watch(bridgeCoreServiceProvider));
 });
 
+final vehicleRemoteDataSourceProvider =
+    Provider<VehicleRemoteDataSource>((ref) {
+  return VehicleRemoteDataSourceImpl(ref.watch(bridgeCoreServiceProvider));
+});
+
+final partnerRemoteDataSourceProvider =
+    Provider<PartnerRemoteDataSource>((ref) {
+  return PartnerRemoteDataSourceImpl(ref.watch(bridgeCoreServiceProvider));
+});
+
+final passengerGroupRemoteDataSourceProvider =
+    Provider<PassengerGroupRemoteDataSource>((ref) {
+  return PassengerGroupRemoteDataSourceImpl(
+      ref.watch(bridgeCoreServiceProvider));
+});
+
 // ========== Repositories ==========
 
 /// Auth Repository Provider
@@ -103,11 +134,33 @@ final tripLineRepositoryProvider = Provider<TripLineRepository>((ref) {
   );
 });
 
+/// Vehicle Repository Provider
+final vehicleRepositoryProvider = Provider<VehicleRepository>((ref) {
+  return VehicleRepositoryImpl(
+    remoteDataSource: ref.watch(vehicleRemoteDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
+/// Partner Repository Provider
+final partnerRepositoryProvider = Provider<PartnerRepository>((ref) {
+  return PartnerRepositoryImpl(
+    remoteDataSource: ref.watch(partnerRemoteDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
+/// PassengerGroup Repository Provider
+final passengerGroupRepositoryProvider =
+    Provider<PassengerGroupRepository>((ref) {
+  return PassengerGroupRepositoryImpl(
+    remoteDataSource: ref.watch(passengerGroupRemoteDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
 // TODO: Add more repository providers:
 // - stopRepositoryProvider
-// - vehicleRepositoryProvider
-// - partnerRepositoryProvider
-// - passengerGroupRepositoryProvider
 
 // ========== Use Cases ==========
 // TODO: Create and add use case providers when needed

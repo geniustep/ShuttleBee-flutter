@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,15 +26,74 @@ class TripTrackingScreen extends ConsumerStatefulWidget {
 
 class _TripTrackingScreenState extends ConsumerState<TripTrackingScreen> {
   final MapController _mapController = MapController();
+  Timer? _refreshTimer;
+  bool _autoRefreshEnabled = true;
+  static const _refreshInterval = Duration(seconds: 10);
 
   @override
   void initState() {
     super.initState();
     _loadTrip();
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    if (_autoRefreshEnabled) {
+      _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+        if (mounted) {
+          _loadTrip();
+        }
+      });
+    }
+  }
+
+  void _toggleAutoRefresh() {
+    setState(() {
+      _autoRefreshEnabled = !_autoRefreshEnabled;
+    });
+    if (_autoRefreshEnabled) {
+      _startAutoRefresh();
+    } else {
+      _refreshTimer?.cancel();
+    }
   }
 
   Future<void> _loadTrip() async {
     await ref.read(activeTripNotifierProvider.notifier).loadTrip(widget.tripId);
+  }
+
+  /// حساب المسافة بين نقطتين (بالكيلومترات)
+  double _calculateDistance(LatLng start, LatLng end) {
+    const Distance distance = Distance();
+    return distance.as(LengthUnit.Kilometer, start, end);
+  }
+
+  /// حساب الوقت المتوقع للوصول (ETA)
+  String _calculateETA(double distanceKm) {
+    // متوسط سرعة 40 كم/ساعة في المدينة
+    const averageSpeedKmh = 40.0;
+    final hours = distanceKm / averageSpeedKmh;
+    final minutes = (hours * 60).round();
+    
+    if (minutes < 1) {
+      return 'أقل من دقيقة';
+    } else if (minutes == 1) {
+      return 'دقيقة واحدة';
+    } else if (minutes < 60) {
+      return '$minutes دقيقة';
+    } else {
+      final hrs = (minutes / 60).floor();
+      final mins = minutes % 60;
+      return '$hrs ساعة و $mins دقيقة';
+    }
   }
 
   @override
@@ -137,17 +197,32 @@ class _TripTrackingScreenState extends ConsumerState<TripTrackingScreen> {
   }
 
   Widget _buildTopInfoCard(trip, state) {
+    final currentPosition = state.currentPosition;
+    // حساب المسافة والـ ETA (مثال: إلى أول نقطة توقف)
+    double? distanceKm;
+    String? eta;
+    
+    if (currentPosition != null && trip.tripLines.isNotEmpty) {
+      final firstStop = trip.tripLines.first;
+      if (firstStop.latitude != null && firstStop.longitude != null) {
+        final stopLocation = LatLng(firstStop.latitude!, firstStop.longitude!);
+        final driverLocation = LatLng(currentPosition.latitude, currentPosition.longitude);
+        distanceKm = _calculateDistance(driverLocation, stopLocation);
+        eta = _calculateETA(distanceKm);
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -208,7 +283,137 @@ class _TripTrackingScreenState extends ConsumerState<TripTrackingScreen> {
                   ],
                 ),
               ),
+              // Auto-refresh toggle
+              IconButton(
+                icon: Icon(
+                  _autoRefreshEnabled ? Icons.sync : Icons.sync_disabled,
+                  color: _autoRefreshEnabled ? AppColors.primary : AppColors.textSecondary,
+                ),
+                onPressed: _toggleAutoRefresh,
+                tooltip: _autoRefreshEnabled ? 'إيقاف التحديث التلقائي' : 'تفعيل التحديث التلقائي',
+              ),
             ],
+          ),
+          
+          // ETA و المسافة
+          if (distanceKm != null && eta != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoChip(
+                    icon: Icons.access_time,
+                    label: 'الوقت المتوقع',
+                    value: eta,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _buildInfoChip(
+                    icon: Icons.social_distance,
+                    label: 'المسافة',
+                    value: '${distanceKm.toStringAsFixed(1)} كم',
+                    color: AppColors.info,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: AppTextStyles.caption.copyWith(color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTripProgress(trip) {
+    final totalStops = trip.tripLines.length;
+    final completedStops = trip.tripLines.where((line) => line.isCompleted).length;
+    final progress = totalStops > 0 ? completedStops / totalStops : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'تقدم الرحلة',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '$completedStops / $totalStops نقاط',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${(progress * 100).toStringAsFixed(0)}% مكتمل',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -269,6 +474,12 @@ class _TripTrackingScreenState extends ConsumerState<TripTrackingScreen> {
           ),
 
           const SizedBox(height: AppSpacing.md),
+
+          // Trip Progress (if ongoing)
+          if (trip.isOngoing && trip.tripLines.isNotEmpty) ...[
+            _buildTripProgress(trip),
+            const SizedBox(height: AppSpacing.md),
+          ],
 
           // Vehicle and Driver Info
           Row(
@@ -406,9 +617,4 @@ class _TripTrackingScreenState extends ConsumerState<TripTrackingScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _mapController.dispose();
-    super.dispose();
-  }
 }

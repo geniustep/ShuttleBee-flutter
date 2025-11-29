@@ -1,3 +1,4 @@
+import 'package:bridgecore_flutter/bridgecore_flutter.dart' show BridgeCore;
 import 'package:shuttlebee/core/constants/odoo_constants.dart';
 import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/core/errors/exceptions.dart';
@@ -111,17 +112,31 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
         ]);
       }
 
-      final results = await _bridgeCoreService.search(
+      // استخدام BridgeCore SDK مباشرة
+      // limit يجب أن يكون >= 1 للـ SDK
+      final effectiveLimit = (limit == null || limit <= 0) ? 100 : limit;
+
+      print('🔍 [getTrips] Domain: $domain');
+      print('🔍 [getTrips] Limit: $effectiveLimit, Offset: ${offset ?? 0}');
+
+      final results = await BridgeCore.instance.odoo.searchRead(
         model: OdooConstants.modelTrip,
-        domain: domain.isEmpty ? null : domain,
-        limit: limit,
-        offset: offset,
+        domain: domain,
+        limit: effectiveLimit,
+        offset: offset ?? 0,
       );
+
+      print('✅ [getTrips] Got ${results.length} results');
+      if (results.isNotEmpty) {
+        print('📋 [getTrips] First result keys: ${results.first.keys.toList()}');
+      }
 
       return results
           .map((json) => TripModel.fromBridgeCoreResponse(json))
           .toList();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [getTrips] Error: $e');
+      print('❌ [getTrips] Stack trace: $stackTrace');
       throw ServerException(e.toString());
     }
   }
@@ -247,8 +262,7 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
         kwargs: {
           if (speed != null) 'speed': speed,
           if (heading != null) 'heading': heading,
-          if (timestamp != null)
-            'timestamp': timestamp.toIso8601String(),
+          if (timestamp != null) 'timestamp': timestamp.toIso8601String(),
         },
       );
     } catch (e) {

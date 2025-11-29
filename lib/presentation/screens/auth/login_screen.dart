@@ -21,7 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // يمكن جعلها اختيارية للتوافق مع API القديم
   final _urlController = TextEditingController();
   final _databaseController = TextEditingController();
-  final _usernameController = TextEditingController();
+  final _emailOrUsernameController = TextEditingController(); // حقل واحد للإيميل أو اسم المستخدم
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -32,7 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.initState();
     // Pre-fill only in debug builds to avoid exposing secrets in production
     if (AppConfig.isDebugMode) {
-      _usernameController.text = AppConfig.odooUsername;
+      _emailOrUsernameController.text = AppConfig.odooUsername;
       _passwordController.text = AppConfig.odooPassword;
       // URL و Database اختيارية في Tenant-Based API
       _urlController.text = AppConfig.odooUrl;
@@ -44,7 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _urlController.dispose();
     _databaseController.dispose();
-    _usernameController.dispose();
+    _emailOrUsernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -57,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref.read(authNotifierProvider.notifier).login(
       url: _urlController.text.trim(),
       database: _databaseController.text.trim(),
-      username: _usernameController.text.trim(),
+      username: _emailOrUsernameController.text.trim(),
       password: _passwordController.text,
     );
 
@@ -132,40 +132,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: AppSpacing.xl),
 
-                  // Email Field (مطلوب)
+                  // Email or Username Field (حقل واحد يقبل الإيميل أو اسم المستخدم)
                   TextFormField(
-                    controller: _usernameController,
+                    controller: _emailOrUsernameController,
                     decoration: const InputDecoration(
-                      labelText: 'البريد الإلكتروني',
-                      prefixIcon: Icon(Icons.email),
-                      hintText: 'أدخل بريدك الإلكتروني',
+                      labelText: 'البريد الإلكتروني أو اسم المستخدم',
+                      prefixIcon: Icon(Icons.person),
+                      hintText: 'أدخل بريدك الإلكتروني أو اسم المستخدم',
                     ),
                     keyboardType: TextInputType.emailAddress,
                     textDirection: TextDirection.ltr,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال البريد الإلكتروني';
-                      }
-                      // التحقق من صحة البريد الإلكتروني (اختياري)
-                      if (!value.contains('@')) {
-                        return 'يرجى إدخال بريد إلكتروني صحيح';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Password Field
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'اسم المستخدم',
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال اسم المستخدم';
+                        return 'يرجى إدخال البريد الإلكتروني أو اسم المستخدم';
                       }
                       return null;
                     },

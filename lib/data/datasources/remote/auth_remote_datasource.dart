@@ -15,13 +15,6 @@ abstract class AuthRemoteDataSource {
   Future<void> logout();
 
   Future<UserModel> getCurrentUser();
-
-  Future<void> connectSystem({
-    required String url,
-    required String database,
-    required String username,
-    required String password,
-  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -69,29 +62,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await _bridgeCoreService.getCurrentUser();
-      // API يعيد user ككائن منفصل: {user: {...}, tenant: {...}}
-      // نحتاج لاستخراج user من response
-      final userData = response['user'] as Map<String, dynamic>? ?? response;
-      return UserModel.fromBridgeCoreResponse(userData);
-    } catch (e) {
-      throw ServerException(e.toString());
-    }
-  }
-
-  @override
-  Future<void> connectSystem({
-    required String url,
-    required String database,
-    required String username,
-    required String password,
-  }) async {
-    try {
-      await _bridgeCoreService.connectSystem(
-        url: url,
-        database: database,
-        username: username,
-        password: password,
-      );
+      // ✅ تمرير الـ response الكامل (يحتوي على: user, tenant, groups, odoo_fields_data)
+      // ملاحظة: الطباعة المفصلة موجودة في BridgeCoreService.getCurrentUser()
+      return UserModel.fromBridgeCoreResponse(response);
     } catch (e) {
       throw ServerException(e.toString());
     }

@@ -23,7 +23,8 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTodayTrips();
+    // ✅ استخدام Future.microtask لتأجيل التحميل بعد بناء الـ widget tree
+    Future.microtask(() => _loadTodayTrips());
   }
 
   Future<void> _loadTodayTrips() async {
@@ -50,12 +51,7 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
           // Logout button
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authNotifierProvider.notifier).logout();
-              if (context.mounted) {
-                context.go(AppRoutes.login);
-              }
-            },
+            onPressed: () => _showLogoutDialog(context, ref),
           ),
         ],
       ),
@@ -426,6 +422,35 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authNotifierProvider.notifier).logout();
+              if (context.mounted) {
+                context.go(AppRoutes.login);
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+            ),
+            child: const Text('تسجيل الخروج'),
+          ),
+        ],
       ),
     );
   }

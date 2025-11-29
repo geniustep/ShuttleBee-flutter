@@ -1,18 +1,26 @@
 import 'package:bridgecore_flutter/bridgecore_flutter.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shuttlebee/core/config/app_config.dart';
 import 'package:shuttlebee/core/constants/api_constants.dart';
+import 'package:shuttlebee/core/constants/app_constants.dart';
 import 'package:shuttlebee/core/network/api_client.dart';
+import 'package:shuttlebee/core/utils/logger.dart';
 
 /// BridgeCore service wrapper for Odoo integration using bridgecore_flutter SDK.
+/// يعتمد بشكل كامل على BridgeCore SDK لإدارة التوكنات والعمليات.
 class BridgeCoreService {
   BridgeCoreService({
     String? systemId,
     ApiClient? apiClient,
+    FlutterSecureStorage? storage,
   })  : _systemId = systemId ?? AppConfig.systemId,
-        _apiClient = apiClient;
+        _apiClient = apiClient,
+        _storage = storage ?? const FlutterSecureStorage();
 
   String _systemId;
   final ApiClient? _apiClient;
+  final FlutterSecureStorage _storage;
 
   /// Get the current system ID
   String get systemId => _systemId;
@@ -36,6 +44,8 @@ class BridgeCoreService {
       try {
         await BridgeCore.instance.auth.logout();
       } catch (_) {
+        await _storage.delete(key: AppConstants.accessTokenKey);
+        await _storage.delete(key: AppConstants.refreshTokenKey);
         // تجاهل خطأ logout إذا لم يكن هناك session
       }
 
@@ -43,18 +53,29 @@ class BridgeCoreService {
       // Note: في Tenant-Based API، لا حاجة لإرسال url و database
       // لأنها مخزنة في قاعدة البيانات للـ tenant
       // SDK يتعامل مع tenant login تلقائياً
+      AppLogger.debug('🔐 [login] Attempting login with email: $username');
+
       final session = await BridgeCore.instance.auth.login(
         email: username, // Tenant-based API يستخدم email
         password: password,
       );
 
+      AppLogger.info(
+          '✅ [login] Login successful, saving tokens to SecureStorage');
+
       // SDK يحفظ التوكنات تلقائياً، لكن نحتاج لحفظها أيضاً في SecureStorage
-      // للتوافق مع الكود القديم الذي يتحقق من SecureStorage
-      if (_apiClient != null) {
-        // حفظ التوكنات في SecureStorage عبر ApiClient storage
-        // (ApiClient يستخدم SecureStorage في AuthInterceptor)
-        // لكن SDK يحفظها في مكانه الخاص، لذا نحتاج للتأكد من التزامن
-      }
+      // للتوافق مع الكود القديم الذي يتحقق من SecureStorage (مثل AuthInterceptor)
+      await _storage.write(
+        key: AppConstants.accessTokenKey,
+        value: session.accessToken,
+      );
+      await _storage.write(
+        key: AppConstants.refreshTokenKey,
+        value: session.refreshToken,
+      );
+
+      AppLogger.debug(
+          '✅ [login] Tokens saved to SecureStorage for compatibility');
 
       // Convert TenantSession to Map for compatibility
       final response = {
@@ -71,11 +92,12 @@ class BridgeCoreService {
       // تحسين رسالة الخطأ
       String errorMessage = e.message;
       if (e is NetworkException) {
-        errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من أن الخادم يعمل على ${AppConfig.apiBaseUrl}';
-      } else if (e.message.contains('401') || 
-                  e.message.contains('unauthorized') ||
-                  e.message.contains('invalid') ||
-                  e.message.contains('credentials')) {
+        errorMessage =
+            'لا يمكن الاتصال بالخادم. تأكد من أن الخادم يعمل على ${AppConfig.apiBaseUrl}';
+      } else if (e.message.contains('401') ||
+          e.message.contains('unauthorized') ||
+          e.message.contains('invalid') ||
+          e.message.contains('credentials')) {
         errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
       }
       throw Exception(errorMessage);
@@ -95,54 +117,95 @@ class BridgeCoreService {
 
   Future<Map<String, dynamic>> logout() async {
     try {
+      AppLogger.debug('🚪 [logout] Logging out from BridgeCore SDK');
+
       // Use SDK for logout
       await BridgeCore.instance.auth.logout();
+
+      // حذف التوكنات من SecureStorage أيضاً للتوافق
+      await _storage.delete(key: AppConstants.accessTokenKey);
+      await _storage.delete(key: AppConstants.refreshTokenKey);
+
+      AppLogger.info('✅ [logout] Logout successful, tokens cleared');
       return {'success': true};
     } on BridgeCoreException catch (e) {
+      AppLogger.error('❌ [logout] BridgeCoreException: ${e.message}');
       throw Exception(e.message);
     } catch (e) {
+      AppLogger.error('❌ [logout] Unexpected error: $e');
       throw Exception(e.toString());
     }
   }
 
   /// Connect system after authentication (requires bearer token)
-  /// 
+  ///
   /// IMPORTANT: في Tenant-Based API:
   /// - لا يوجد اتصال مباشر بـ Odoo من التطبيق
   /// - كل العمليات تمر عبر BridgeCore API (bridgecore.geniura.com)
   /// - Odoo URL و Database يتم جلبها تلقائياً من قاعدة البيانات للـ tenant
   /// - لا حاجة لإرسال url أو database في الطلبات
-  /// 
-  /// هذه الدالة موجودة للتوافق مع الكود القديم فقط ولا تفعل شيئاً
-  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
-  Future<Map<String, dynamic>> connectSystem({
-    required String url, // غير مستخدم - للتوافق فقط
-    required String database, // غير مستخدم - للتوافق فقط
-    required String username, // غير مستخدم - للتوافق فقط
-    required String password, // غير مستخدم - للتوافق فقط
-    String systemType = 'odoo',
-  }) async {
-    // في Tenant-Based API، لا حاجة لـ connectSystem
-    // لأن Odoo credentials يتم جلبها تلقائياً من قاعدة البيانات
-    // كل العمليات تمر عبر bridgecore.geniura.com
-    return {
-      'success': true,
-      'message': 'System connection handled automatically in tenant-based API. All operations go through bridgecore.geniura.com',
-    };
-  }
+  ///
 
+  /// ✅ الحصول على معلومات المستخدم الحالي باستخدام /me endpoint (BridgeCore v0.2.0)
   Future<Map<String, dynamic>> getCurrentUser() async {
-    // SDK قد لا يوفر getCurrentUser مباشرة
-    // نستخدم ApiClient كـ fallback
-    if (_apiClient == null) {
-      throw Exception('ApiClient is required for getCurrentUser');
-    }
-
     try {
-      // Use tenant-based me endpoint
-      return await _apiClient!.get(ApiConstants.authTenantMe);
+      // استخدام BridgeCore مباشرة مع odoo_fields_check
+      final meResponse = await BridgeCore.instance.auth.me(
+        odooFieldsCheck: OdooFieldsCheck(
+          model: 'res.users',
+          listFields: ['shuttle_role'],
+        ),
+        forceRefresh: true, // للحصول على بيانات محدثة
+      );
+
+      // تحويل الاستجابة إلى Map
+      final responseJson = meResponse.toJson();
+
+      // طباعة log للبيانات المستلمة
+      AppLogger.info(
+          '📥 [getCurrentUser] Received user data from /me endpoint');
+      AppLogger.debug(
+          '📥 [getCurrentUser] User ID: ${responseJson['user']?['id']}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] User Name: ${responseJson['user']?['name']}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] User Email: ${responseJson['user']?['email']}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Partner ID: ${meResponse.partnerId}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Employee ID: ${meResponse.employeeId}');
+      AppLogger.debug('📥 [getCurrentUser] Is Admin: ${meResponse.isAdmin}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Is Internal User: ${meResponse.isInternalUser}');
+      AppLogger.debug('📥 [getCurrentUser] Groups: ${meResponse.groups}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Company IDs: ${meResponse.companyIds}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Current Company ID: ${meResponse.currentCompanyId}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Odoo Fields Data: ${meResponse.odooFieldsData}');
+      AppLogger.debug(
+          '📥 [getCurrentUser] Shuttle Role: ${meResponse.odooFieldsData?['shuttle_role']}');
+
+      final response = {
+        'user': responseJson['user'] ?? {},
+        'tenant': responseJson['tenant'] ?? {},
+        'partner_id': meResponse.partnerId,
+        'employee_id': meResponse.employeeId,
+        'groups': meResponse.groups,
+        'is_admin': meResponse.isAdmin,
+        'is_internal_user': meResponse.isInternalUser,
+        'company_ids': meResponse.companyIds,
+        'current_company_id': meResponse.currentCompanyId,
+        'odoo_fields_data': meResponse.odooFieldsData ?? {},
+        // للوصول المباشر لـ shuttle_role
+        'shuttle_role': meResponse.odooFieldsData?['shuttle_role'],
+      };
+
+      AppLogger.info('✅ [getCurrentUser] Successfully processed user data');
+      return response;
     } catch (e) {
-      throw Exception(e.toString());
+      throw Exception('Failed to get current user: ${e.toString()}');
     }
   }
 
@@ -196,36 +259,145 @@ class BridgeCoreService {
     String? order,
   }) async {
     try {
-      return await BridgeCore.instance.odoo.searchRead(
-        model: model,
-        domain: domain ?? [],
-        fields: fields ?? [],
-        limit: limit ?? 0,
-        offset: offset ?? 0,
-        order: order,
-        useSmartFallback: true, // Enable smart fallback for invalid fields
-      );
+      // Log request details for debugging
+      AppLogger.debug('🔍 [search] Model: $model');
+      AppLogger.debug('🔍 [search] Domain: ${domain ?? []}');
+      AppLogger.debug('🔍 [search] Fields: ${fields ?? []}');
+      AppLogger.debug(
+          '🔍 [search] Limit: ${limit ?? 0}, Offset: ${offset ?? 0}');
+
+      // محاولة البحث مع الحقول المحددة
+      // Note: BridgeCore API requires limit >= 1, so we use a high default if not specified
+      final effectiveLimit = (limit == null || limit <= 0) ? 1000 : limit;
+      final effectiveOffset = offset ?? 0;
+
+      try {
+        // If fields is empty or null, don't pass it to let SDK use default behavior
+        final effectiveFields =
+            (fields == null || fields.isEmpty) ? null : fields;
+
+        AppLogger.debug('🔍 [search] Effective fields: $effectiveFields');
+
+        List<Map<String, dynamic>> result;
+
+        result = await BridgeCore.instance.odoo.searchRead(
+          model: model,
+        );
+
+        AppLogger.debug('✅ [search] Found ${result.length} records');
+
+        // Log first record for debugging field names
+        if (result.isNotEmpty) {
+          AppLogger.debug(
+              '📋 [search] First record keys: ${result.first.keys.toList()}');
+        }
+
+        return result;
+      } on DioException catch (dioError) {
+        // Capture DioException to get the actual response body
+        AppLogger.error('❌ [search] DioException caught:');
+        AppLogger.error(
+            '❌ [search] Status code: ${dioError.response?.statusCode}');
+        AppLogger.error('❌ [search] Response data: ${dioError.response?.data}');
+        AppLogger.error(
+            '❌ [search] Request path: ${dioError.requestOptions.path}');
+        AppLogger.error(
+            '❌ [search] Request data: ${dioError.requestOptions.data}');
+        rethrow;
+      } on BridgeCoreException catch (e) {
+        // إذا كان الخطأ 422 (validation error)، جرب بدون fields محددة
+        if (e.message.contains('422') ||
+            e.message.contains('bad syntax') ||
+            e.message.contains('cannot be fulfilled')) {
+          AppLogger.warning(
+              '⚠️ [search] 422 error with specified fields, trying without fields...');
+
+          // محاولة البحث بدون fields (سيجلب جميع الحقول)
+          try {
+            final result = await BridgeCore.instance.odoo.searchRead(
+              model: model,
+              domain: domain ?? [],
+              fields: [], // Empty fields = get all fields
+              limit: effectiveLimit,
+              offset: effectiveOffset,
+              order: order,
+              useSmartFallback: true,
+            );
+
+            AppLogger.debug(
+                '✅ [search] Found ${result.length} records (without specified fields)');
+            return result;
+          } catch (fallbackError) {
+            // إذا فشل أيضاً، أعد الخطأ الأصلي
+            AppLogger.error('❌ [search] Fallback also failed: $fallbackError');
+            rethrow;
+          }
+        } else {
+          // إذا لم يكن خطأ 422، أعد الخطأ الأصلي
+          rethrow;
+        }
+      }
     } on BridgeCoreException catch (e) {
       // تحسين رسائل الخطأ
       String errorMessage = e.message;
-      
+
+      // Log error details with full exception info
+      AppLogger.error('❌ [search] BridgeCoreException: $errorMessage');
+      AppLogger.error('❌ [search] Model: $model, Domain: ${domain ?? []}');
+      AppLogger.error('❌ [search] Fields: ${fields ?? []}');
+      AppLogger.error('❌ [search] Full exception: ${e.toString()}');
+      AppLogger.error('❌ [search] Exception type: ${e.runtimeType}');
+
       // معالجة أخطاء Odoo connection
       if (errorMessage.contains('Name or service not known') ||
           errorMessage.contains('Odoo authentication failed')) {
-        errorMessage = 'لا يمكن الاتصال بخادم Odoo. يرجى التحقق من إعدادات الخادم.';
-      } else if (errorMessage.contains('401') || 
-                  errorMessage.contains('authentication failed')) {
+        errorMessage =
+            'لا يمكن الاتصال بخادم Odoo. يرجى التحقق من إعدادات الخادم.';
+      } else if (errorMessage.contains('401') ||
+          errorMessage.contains('authentication failed')) {
         errorMessage = 'فشل المصادقة مع Odoo. يرجى التحقق من بيانات الاعتماد.';
-      } else if (errorMessage.contains('500') || 
-                  errorMessage.contains('Server error')) {
+      } else if (errorMessage.contains('422') ||
+          errorMessage.contains('bad syntax') ||
+          errorMessage.contains('cannot be fulfilled')) {
+        // محاولة البحث بدون fields محددة (سيجلب جميع الحقول)
+        AppLogger.warning(
+            '⚠️ [search] 422 error detected, attempting fallback without specified fields...');
+
+        // Use valid limit (>= 1) for BridgeCore API
+        final fallbackLimit = (limit == null || limit <= 0) ? 1000 : limit;
+        final fallbackOffset = offset ?? 0;
+
+        try {
+          final fallbackResult = await BridgeCore.instance.odoo.searchRead(
+            model: model,
+            domain: domain ?? [],
+            fields: [], // Empty fields = get all available fields
+            limit: fallbackLimit,
+            offset: fallbackOffset,
+            order: order,
+          );
+
+          AppLogger.info(
+              '✅ [search] Fallback successful! Found ${fallbackResult.length} records');
+          return fallbackResult;
+        } catch (fallbackError) {
+          AppLogger.error('❌ [search] Fallback also failed: $fallbackError');
+          errorMessage =
+              'خطأ في البيانات المرسلة (422). يرجى التحقق من صحة المعاملات.';
+          AppLogger.error(
+              '❌ [search] 422 Error - Domain: ${domain ?? []}, Fields: ${fields ?? []}');
+        }
+      } else if (errorMessage.contains('500') ||
+          errorMessage.contains('Server error')) {
         errorMessage = 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
       }
-      
+
       throw Exception(errorMessage);
     } catch (e) {
       // معالجة الأخطاء العامة
       if (e.toString().contains('Name or service not known')) {
-        throw Exception('لا يمكن الاتصال بخادم Odoo. يرجى التحقق من إعدادات الخادم.');
+        throw Exception(
+            'لا يمكن الاتصال بخادم Odoo. يرجى التحقق من إعدادات الخادم.');
       }
       throw Exception(e.toString());
     }

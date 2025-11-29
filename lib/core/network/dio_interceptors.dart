@@ -1,11 +1,13 @@
+import 'package:bridgecore_flutter/bridgecore_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shuttlebee/core/config/app_config.dart';
 import 'package:shuttlebee/core/constants/api_constants.dart';
 import 'package:shuttlebee/core/constants/app_constants.dart';
 import 'package:shuttlebee/core/errors/exceptions.dart';
 import 'package:shuttlebee/core/utils/logger.dart';
 
-/// Auth Interceptor - إدارة التوكن و Auto Refresh
+/// Auth Interceptor - إدارة التوكن و Auto Refresh باستخدام BridgeCore SDK
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     required FlutterSecureStorage storage,
@@ -24,11 +26,13 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // إضافة Access Token للـ requests (ما عدا login و refresh)
     if (!_isAuthEndpoint(options.path)) {
+      // BridgeCore SDK يدير التوكنات تلقائياً، لكن Interceptor يحتاج الوصول للتوكن
+      // نحصل عليه من SecureStorage (BridgeCoreService يحفظه هناك بعد login)
       final accessToken = await _storage.read(
         key: AppConstants.accessTokenKey,
       );
 
-      if (accessToken != null) {
+      if (accessToken != null && accessToken.isNotEmpty) {
         options.headers[ApiConstants.authorizationHeader] =
             'Bearer $accessToken';
       }
@@ -90,49 +94,95 @@ class AuthInterceptor extends Interceptor {
     }
   }
 
-  /// تحديث التوكن
+  /// تحديث التوكن باستخدام BridgeCore Tenant-Based API
   Future<void> _refreshToken() async {
+    AppLogger.debug('🔄 [AuthInterceptor] Attempting to refresh token');
+
+    // الحصول على refresh token من SecureStorage
     final refreshToken = await _storage.read(
       key: AppConstants.refreshTokenKey,
     );
 
-    if (refreshToken == null) {
+    if (refreshToken == null || refreshToken.isEmpty) {
       throw const AuthenticationException('لا يوجد refresh token');
     }
 
-    final response = await _dio.post(
-      ApiConstants.authRefresh,
-      data: {'refresh_token': refreshToken},
-    );
-
-    if (response.statusCode == 200) {
-      final data = response.data as Map<String, dynamic>;
-      await _storage.write(
-        key: AppConstants.accessTokenKey,
-        value: data['access_token'] as String,
+    try {
+      // استخدام Tenant-Based API endpoint لتحديث التوكن
+      // POST /api/v1/auth/tenant/refresh
+      final response = await _dio.post(
+        '${AppConfig.apiBaseUrl}/api/v1/auth/tenant/refresh',
+        data: {'refresh_token': refreshToken},
       );
 
-      // تحديث refresh token إذا كان موجوداً
-      if (data.containsKey('refresh_token')) {
-        await _storage.write(
-          key: AppConstants.refreshTokenKey,
-          value: data['refresh_token'] as String,
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+
+        // حفظ التوكنات الجديدة في SecureStorage
+        if (data.containsKey('access_token')) {
+          await _storage.write(
+            key: AppConstants.accessTokenKey,
+            value: data['access_token'] as String,
+          );
+          AppLogger.debug(
+              '✅ [AuthInterceptor] Access token refreshed and saved');
+        }
+
+        // تحديث refresh token إذا كان موجوداً في الاستجابة
+        if (data.containsKey('refresh_token')) {
+          await _storage.write(
+            key: AppConstants.refreshTokenKey,
+            value: data['refresh_token'] as String,
+          );
+          AppLogger.debug('✅ [AuthInterceptor] Refresh token updated');
+        }
+
+        // BridgeCore SDK يدير التوكنات تلقائياً، لكن نحتاج للتأكد من التزامن
+        // SDK سيستخدم التوكنات الجديدة في الطلبات التالية تلقائياً
+      } else {
+        throw const AuthenticationException('فشل تحديث التوكن');
+      }
+    } on DioException catch (e) {
+      AppLogger.error('❌ [AuthInterceptor] Token refresh failed: ${e.message}');
+
+      if (e.response?.statusCode == 401) {
+        throw const AuthenticationException(
+          'انتهت صلاحية refresh token. يرجى تسجيل الدخول مرة أخرى.',
         );
       }
-    } else {
-      throw const AuthenticationException('فشل تحديث التوكن');
+
+      throw AuthenticationException(
+          'فشل تحديث التوكن: ${e.message ?? e.toString()}');
+    } catch (e) {
+      AppLogger.error(
+          '❌ [AuthInterceptor] Unexpected error during token refresh: $e');
+      throw AuthenticationException('فشل تحديث التوكن: ${e.toString()}');
     }
   }
 
-  /// حذف التوكنات
+  /// حذف التوكنات من BridgeCore SDK و SecureStorage
   Future<void> _clearTokens() async {
+    try {
+      // حذف من BridgeCore SDK
+      await BridgeCore.instance.auth.logout();
+    } catch (_) {
+      // تجاهل الخطأ إذا لم يكن هناك session
+    }
+
+    // حذف من SecureStorage
     await _storage.delete(key: AppConstants.accessTokenKey);
     await _storage.delete(key: AppConstants.refreshTokenKey);
+
+    AppLogger.debug(
+        '🗑️ [AuthInterceptor] Tokens cleared from both SDK and storage');
   }
 
   /// هل الـ endpoint خاص بالمصادقة
   bool _isAuthEndpoint(String path) {
-    return path.contains('/auth/login') ||
+    return path.contains('/auth/tenant/login') ||
+        path.contains('/auth/tenant/refresh') ||
+        path.contains('/auth/tenant/logout') ||
+        path.contains('/auth/login') ||
         path.contains('/auth/refresh') ||
         path.contains('/auth/logout');
   }
@@ -225,7 +275,6 @@ class RetryInterceptor extends Interceptor {
         err.type == DioExceptionType.sendTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.connectionError ||
-        (err.response?.statusCode != null &&
-            err.response!.statusCode! >= 500);
+        (err.response?.statusCode != null && err.response!.statusCode! >= 500);
   }
 }

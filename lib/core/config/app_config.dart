@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shuttlebee/core/utils/logger.dart';
 
 /// تكوين التطبيق من Environment Variables
 class AppConfig {
@@ -11,7 +12,7 @@ class AppConfig {
 
   // API Configuration
   static String get apiBaseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+      dotenv.env['API_BASE_URL'] ?? 'https://bridgecore.geniura.com';
 
   static String get systemId => dotenv.env['SYSTEM_ID'] ?? 'odoo-prod';
 
@@ -19,17 +20,21 @@ class AppConfig {
   // Note: في Tenant-Based API، هذه القيم غير مستخدمة
   // لأن كل العمليات تمر عبر bridgecore.geniura.com
   // Odoo credentials يتم جلبها تلقائياً من قاعدة البيانات للـ tenant
-  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
+  @Deprecated(
+      'Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooUrl =>
       dotenv.env['ODOO_URL'] ?? 'https://demo.odoo.com';
 
-  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
+  @Deprecated(
+      'Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooDatabase => dotenv.env['ODOO_DATABASE'] ?? 'demo';
 
-  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
+  @Deprecated(
+      'Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooUsername => dotenv.env['ODOO_USERNAME'] ?? 'admin';
 
-  @Deprecated('Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
+  @Deprecated(
+      'Not used in Tenant-Based API - all operations go through bridgecore.geniura.com')
   static String get odooPassword => dotenv.env['ODOO_PASSWORD'] ?? 'admin';
 
   // Token Configuration
@@ -81,17 +86,18 @@ class AppConfig {
   /// طباعة التكوين الحالي (للتطوير فقط)
   static void printConfig() {
     if (isDebugMode) {
-      print('=== ShuttleBee Configuration ===');
-      print('API Base URL: $apiBaseUrl');
-      print('System ID: $systemId');
-      print('Odoo URL: $odooUrl');
-      print('Odoo Database: $odooDatabase');
-      print('App Name: $appName');
-      print('App Version: $appVersion');
-      print('Debug Mode: $isDebugMode');
-      print('Debug Role Override: ${debugRoleOverride ?? "none (will use dispatcher as default)"}');
-      print('Enable Logging: $enableLogging');
-      print('================================');
+      AppLogger.info('=== ShuttleBee Configuration ===');
+      AppLogger.info('API Base URL: $apiBaseUrl');
+      AppLogger.info('System ID: $systemId');
+      AppLogger.info('Odoo URL: $odooUrl');
+      AppLogger.info('Odoo Database: $odooDatabase');
+      AppLogger.info('App Name: $appName');
+      AppLogger.info('App Version: $appVersion');
+      AppLogger.info('Debug Mode: $isDebugMode');
+      AppLogger.info(
+          'Debug Role Override: ${debugRoleOverride ?? "none (will use dispatcher as default)"}');
+      AppLogger.info('Enable Logging: $enableLogging');
+      AppLogger.info('================================');
     }
   }
 }

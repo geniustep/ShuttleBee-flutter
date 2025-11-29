@@ -5,9 +5,14 @@ import 'package:shuttlebee/core/enums/enums.dart';
 import 'package:shuttlebee/presentation/providers/auth_notifier.dart';
 import 'package:shuttlebee/presentation/providers/auth_state.dart';
 import 'package:shuttlebee/presentation/screens/auth/login_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/create_edit_vehicle_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/create_trip_screen.dart';
 import 'package:shuttlebee/presentation/screens/dispatcher/dispatcher_home_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/dispatcher_trip_detail_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/edit_trip_screen.dart';
 import 'package:shuttlebee/presentation/screens/dispatcher/real_time_monitoring_screen.dart';
 import 'package:shuttlebee/presentation/screens/dispatcher/trip_list_screen.dart';
+import 'package:shuttlebee/presentation/screens/dispatcher/vehicle_management_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/active_trip_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/driver_home_screen.dart';
 import 'package:shuttlebee/presentation/screens/driver/trip_detail_screen.dart';
@@ -29,6 +34,8 @@ class AppRoutes {
   static const String dispatcherVehicles = '/dispatcher/vehicles';
   static const String passengerHome = '/passenger';
   static const String managerHome = '/manager';
+  static const String profile = '/profile'; // ✅ Profile route
+  static const String settings = '/settings'; // ✅ Settings route
 }
 
 /// ChangeNotifier wrapper for AuthState to use with GoRouter refreshListenable
@@ -92,7 +99,9 @@ GoRouter createRouter(AuthState authState, WidgetRef? ref) {
       // لو مصدَّق وحاول يدخل صفحة اللوجين، رجّعه للهوم حسب الدور
       if (isAuthenticated && isOnLogin) {
         final homeRoute = _getHomeRouteForUser(userRole);
-        debugPrint('[GoRouter] User authenticated, redirecting to: $homeRoute');
+        debugPrint('[GoRouter] User authenticated');
+        debugPrint('[GoRouter] User role: $userRole');
+        debugPrint('[GoRouter] Redirecting to: $homeRoute');
         return homeRoute;
       }
 
@@ -175,41 +184,20 @@ GoRouter createRouter(AuthState authState, WidgetRef? ref) {
             routes: [
               GoRoute(
                 path: 'create',
-                builder: (context, state) => Scaffold(
-                  appBar: AppBar(
-                    title: const Text('إنشاء رحلة جديدة'),
-                  ),
-                  body: const Center(
-                    child: Text('شاشة إنشاء رحلة جديدة - قيد التطوير'),
-                  ),
-                ),
+                builder: (context, state) => const CreateTripScreen(),
               ),
               GoRoute(
                 path: ':tripId',
                 builder: (context, state) {
                   final tripId = int.parse(state.pathParameters['tripId']!);
-                  return Scaffold(
-                    appBar: AppBar(
-                      title: const Text('تفاصيل الرحلة'),
-                    ),
-                    body: Center(
-                      child: Text('تفاصيل الرحلة #$tripId - قيد التطوير'),
-                    ),
-                  );
+                  return DispatcherTripDetailScreen(tripId: tripId);
                 },
                 routes: [
                   GoRoute(
                     path: 'edit',
                     builder: (context, state) {
                       final tripId = int.parse(state.pathParameters['tripId']!);
-                      return Scaffold(
-                        appBar: AppBar(
-                          title: const Text('تعديل الرحلة'),
-                        ),
-                        body: Center(
-                          child: Text('تعديل الرحلة #$tripId - قيد التطوير'),
-                        ),
-                      );
+                      return EditTripScreen(tripId: tripId);
                     },
                   ),
                 ],
@@ -222,11 +210,24 @@ GoRouter createRouter(AuthState authState, WidgetRef? ref) {
           ),
           GoRoute(
             path: 'vehicles',
-            builder: (context, state) => const Scaffold(
-              body: Center(
-                child: Text('شاشة إدارة المركبات - قيد التطوير'),
+            builder: (context, state) => const VehicleManagementScreen(),
+            routes: [
+              GoRoute(
+                path: 'create',
+                builder: (context, state) => const CreateEditVehicleScreen(),
               ),
-            ),
+              GoRoute(
+                path: ':vehicleId/edit',
+                builder: (context, state) {
+                  // TODO: Load vehicle from ID
+                  return const Scaffold(
+                    body: Center(
+                      child: Text('تعديل المركبة - قيد التطوير'),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

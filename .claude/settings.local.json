@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr:*)",
+      "Bash(dir /s /b .dart_toolpackage_config.json 2)",
+      "Bash(nul)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

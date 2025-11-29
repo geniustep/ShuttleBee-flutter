@@ -45,15 +45,6 @@ class AuthRepositoryImpl implements AuthRepository {
       // كل العمليات تمر عبر bridgecore.geniura.com
       await localDataSource.saveTokens(authModel);
 
-      // connectSystem غير مطلوب في Tenant-Based API
-      // لكن نستدعيه للتوافق مع الكود القديم (لا يفعل شيئاً)
-      await remoteDataSource.connectSystem(
-        url: url, // غير مستخدم - للتوافق فقط
-        database: database, // غير مستخدم - للتوافق فقط
-        username: username, // غير مستخدم - للتوافق فقط
-        password: password, // غير مستخدم - للتوافق فقط
-      );
-
       return Right(authModel.toEntity());
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));

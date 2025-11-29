@@ -6,7 +6,7 @@ class ApiConstants {
   // Base URLs
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+    defaultValue: 'https://bridgecore.geniura.com',
   );
 
   // Note: system_id لم يعد مطلوباً في URL - يتم استخراجه من JWT token
@@ -30,50 +30,7 @@ class ApiConstants {
   static const int maxRetries = 3;
   static const Duration retryDelay = Duration(seconds: 2);
 
-  // BridgeCore Endpoints - Tenant-Based API
-  static const String apiPrefix = 'api/v1';
-
-  // ========== Authentication (Tenant-Based) ==========
-  /// POST /api/v1/auth/tenant/login
-  /// Tenant login - لا يحتاج system_id
-  static const String authTenantLogin = '$apiPrefix/auth/tenant/login';
-
-  /// POST /api/v1/auth/tenant/logout
-  static const String authTenantLogout = '$apiPrefix/auth/tenant/logout';
-
-  /// POST /api/v1/auth/tenant/refresh
-  static const String authTenantRefresh = '$apiPrefix/auth/tenant/refresh';
-
-  /// GET /api/v1/auth/tenant/me
-  static const String authTenantMe = '$apiPrefix/auth/tenant/me';
-
-  // Legacy endpoints (deprecated - للتوافق مع API القديم)
-  @Deprecated('Use authTenantLogin instead')
-  static const String authLogin = '$apiPrefix/auth/login';
-
-  @Deprecated('Use authTenantLogout instead')
-  static const String authLogout = '$apiPrefix/auth/logout';
-
-  @Deprecated('Use authTenantRefresh instead')
-  static const String authRefresh = '$apiPrefix/auth/refresh';
-
-  @Deprecated('Use authTenantMe instead')
-  static const String authMe = '$apiPrefix/auth/me';
-
-  // ========== Odoo Operations (Tenant-Based - بدون system_id) ==========
-  /// POST /api/v1/odoo/search_read
-  /// GET /api/v1/odoo/read
-  /// POST /api/v1/odoo/create
-  /// PUT /api/v1/odoo/update/{id}
-  /// DELETE /api/v1/odoo/delete/{id}
-  /// POST /api/v1/odoo/execute
-
-  static const String odooSearchRead = '$apiPrefix/odoo/search_read';
-  static const String odooRead = '$apiPrefix/odoo/read';
-  static const String odooCreate = '$apiPrefix/odoo/create';
-  static String odooUpdate(int id) => '$apiPrefix/odoo/update/$id';
-  static String odooDelete(int id) => '$apiPrefix/odoo/delete/$id';
-  static const String odooExecute = '$apiPrefix/odoo/execute';
+  // ========== Odoo Operations (Tenant-Based - بدون system_id) =========
 
   // Legacy CRUD Operations (deprecated)
   @Deprecated('Use odooRead instead - system_id no longer needed')
@@ -98,13 +55,15 @@ class ApiConstants {
   static String execute(String systemId) => 'systems/$systemId/execute';
 
   // ========== Batch Operations ==========
-  static const String batch = '$apiPrefix/batch';
+  static const String batch = 'api/v1/batch';
+
+  // ========== Odoo Execute ==========
+  static const String odooExecute = 'api/v1/odoo/execute';
 
   // ========== File Operations ==========
-  /// Note: قد تحتاج system_id في بعض الحالات الخاصة
-  static const String upload = '$apiPrefix/files/upload';
-  static String download(int id) => '$apiPrefix/files/download/$id';
-  static String report(String type) => '$apiPrefix/files/report/$type';
+  static const String upload = 'api/v1/files/upload';
+  static String download(int id) => 'api/v1/files/download/$id';
+  static String report(String type) => 'api/v1/files/report/$type';
 
   // Legacy file operations (deprecated)
   @Deprecated('Use upload instead')
@@ -120,8 +79,8 @@ class ApiConstants {
 
   // ========== Barcode Operations ==========
   static String barcodeLookup(String barcode) =>
-      '$apiPrefix/barcode/lookup/$barcode';
-  static const String barcodeSearch = '$apiPrefix/barcode/search';
+      'api/v1/barcode/lookup/$barcode';
+  static const String barcodeSearch = 'api/v1/barcode/search';
 
   // Legacy barcode operations (deprecated)
   @Deprecated('Use barcodeLookup instead')
